@@ -1,0 +1,5010 @@
+<!DOCTYPE html>
+<html lang="hu">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Képszerkesztő</title>
+    <style>
+        /* A [data-theme="dark"] részeket törölheted a CSS-ből, ha tisztítani akarod a kódot, de nem okoz gondot, ha maradnak. */
+        :root {
+            --bg-app: #f9f9f9;
+            --bg-panel: #ffffff;
+            --text-main: #222222;
+            --text-muted: #888888;
+            --border-subtle: #e0e0e0;
+            --accent-color: #007bff;
+            /* Csak a kijelöléshez */
+            --hover-bg: #f0f0f0;
+            --danger: #ff4d4f;
+        }
+
+        * {
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            /* Nincs görgetés az ablakon */
+            /* --- GLOBÁLIS KIJELÖLÉS TILTÁSA --- */
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        /* --- KIVÉTEL: Az input mezőkben továbbra is kell a kijelölés a szerkesztéshez --- */
+        input,
+        textarea {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+        }
+
+
+
+        /* --- MOBILE BLOCKER --- */
+        #mobile-warning {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-panel);
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Ha a szélesség kisebb mint 1024px VAGY a magasság kisebb mint 550px, blokkolunk */
+        @media (max-width: 1024px),
+        (max-height: 550px) {
+            #app-container {
+                display: none !important;
+            }
+
+            #mobile-warning {
+                display: flex !important;
+            }
+        }
+
+        /* --- MAIN LAYOUT --- */
+        #app-container {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            grid-template-rows: 50px 50px 1fr;
+            /* A második sor is 50px lett */
+            height: 100%;
+            width: 100%;
+        }
+
+        .secondary-header {
+            grid-column: 1 / -1;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            height: 50px;
+            gap: 12px;
+            /* JAVÍTÁS: Engedélyezzük, hogy a tartalom kilógjon (a popover miatt) */
+            overflow: visible !important;
+            white-space: nowrap;
+            position: relative;
+            z-index: 1001;
+            /* Legyen magasabban, mint a munkaterület */
+        }
+
+        /*  .toolbar-separator {
+            width: 1px;
+            height: 20px;
+          
+            background: var(--border-subtle);
+            margin: 0 2px;
+            
+            flex-shrink: 0;
+        }*/
+
+        /*.toolbar-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0;
+        
+        }*/
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            /* 10px helyett 6px */
+        }
+
+        /*  .toggle-checkbox:checked+.toggle-switch-ui {
+            background-color: var(--text-main);
+            
+            border-color: var(--text-main);
+        }*/
+
+        /* .toggle-checkbox:checked+.toggle-switch-ui::after {
+            transform: translateX(18px);
+        }*/
+
+
+
+        .toggle-wrapper span {
+            font-size: 11px !important;
+            /* 12px helyett 11px */
+        }
+
+        /*.toggle-checkbox {
+            display: none;
+        }*/
+
+        /* --- 2. JAVÍTOTT VÁLASZTÓK (Segmented Control) --- */
+        /* Itt a padding és a box-sizing a lényeg, hogy ne lógjon ki */
+        /*  .segmented-wrapper {
+            display: inline-flex;
+            background-color: #f0f0f5;
+            padding: 2px;
+            
+            border-radius: 8px;
+            height: 30px;
+          
+            align-items: center;
+        }*/
+
+        /* --- 3. ÚJ RÁCS VEZÉRLŐ (Stepper - Kis helyigény) --- */
+        .stepper-control {
+            display: flex;
+            align-items: center;
+            background: #fff;
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            height: 36px;
+            overflow: hidden;
+        }
+
+        .stepper-btn {
+            width: 32px;
+            height: 100%;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .stepper-btn:hover {
+            background-color: var(--hover-bg);
+            color: var(--text-main);
+        }
+
+        .stepper-btn:active {
+            background: #e0e0e0;
+        }
+
+        .stepper-value {
+            font-family: monospace;
+            font-size: 13px;
+            font-weight: 700;
+            width: 40px;
+            text-align: center;
+            border-left: 1px solid var(--border-subtle);
+            border-right: 1px solid var(--border-subtle);
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #fafafa;
+        }
+
+        /*  .segmented-label {
+            padding: 0 10px;
+          
+            height: 26px;
+            
+            font-size: 11px;
+          
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            user-select: none;
+            white-space: nowrap;
+        } */
+
+        /* .segmented-input {
+            display: none;
+        }*/
+
+        /*  .segmented-input:checked+.segmented-label {
+            background-color: #ffffff;
+            color: #000000;
+
+            
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }*/
+
+        .segmented-label:hover {
+            color: var(--text-main);
+        }
+
+        /*  .toggle-switch-ui {
+            width: 34px;
+           
+            height: 20px;
+           
+            background-color: #e9e9ea;
+            border-radius: 50px;
+            position: relative;
+            transition: background-color 0.2s ease;
+            border: 1px solid #dcdcdc;
+             
+        } */
+
+        /* .toggle-switch-ui::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 14px;
+          
+            height: 14px;
+         
+            background-color: #fff;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }*/
+
+        /* --- HEADER (Módosított) --- */
+        .app-header {
+            grid-column: 1 / -1;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            /* Hogy a középső elem valóban középen legyen, space-between helyett: */
+            justify-content: space-between;
+            padding: 0 20px;
+            position: relative;
+            /* Pozicionálás miatt */
+        }
+
+        .app-title {
+            font-weight: 700;
+            font-size: 16px;
+            letter-spacing: -0.5px;
+        }
+
+        /* --- SIDEBARS (COMMON) --- */
+        .sidebar {
+            background: var(--bg-panel);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 25px;
+        }
+
+        .sidebar-right {
+            border-left: 1px solid var(--border-subtle);
+        }
+
+        .sidebar-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sidebar-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        /* --- CENTER CANVAS AREA --- */
+        .main-workspace {
+            background-color: var(--bg-app);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+
+            /* VÁLTOZÁS: 20px (Ez adja a "keretet", hogy ne legyen falig) */
+            padding: 20px;
+
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #canvas-wrapper {
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+            /* Csak a vászonnak van árnyéka, hogy kiemelkedjen */
+            max-width: 100%;
+            max-height: 100%;
+            aspect-ratio: 1 / 1;
+            position: relative;
+            cursor: crosshair;
+            overflow: visible !important;
+            /* Az eredeti JS miatt ez display:none alapból, majd block lesz */
+        }
+
+        .visual-selection-box {
+            position: absolute;
+            border: 2px solid #007bff;
+            pointer-events: none;
+            box-sizing: border-box;
+            display: block;
+        }
+
+        /* Az elsődleges kijelölt kép stílusa */
+        .visual-selection-box.active {
+            border-style: solid;
+            z-index: 100;
+        }
+
+        /* A többi kijelölt kép szaggatott kerete - Vastagítva a jobb láthatóságért */
+        .visual-selection-box.multi {
+            border: 2px dashed rgba(0, 123, 255, 0.9);
+            /* 1.5px -> 2.5px */
+            z-index: 90;
+        }
+
+        /* Fogantyúk (sarkok) */
+        .visual-handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: white;
+            border: 1px solid #007bff;
+            border-radius: 2px;
+        }
+
+        /* Forgató nyalóka */
+        .visual-rotator-line {
+            position: absolute;
+            width: 2px;
+            background: #007bff;
+            left: 50%;
+            bottom: 100%;
+            /* A doboz tetejétől indul */
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: center;
+        }
+
+        .visual-rotator-dot {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: white;
+            border: 2px solid #007bff;
+            border-radius: 50%;
+            top: 0;
+            /* A vonal tetejére rögzítjük */
+            transform: translateY(-50%);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* --- MÓD VÁLASZTÓ (Új stílus a fejlécbe) --- */
+        .mode-selector {
+            display: flex;
+            background: var(--hover-bg);
+            border-radius: 6px;
+            padding: 3px;
+            /* Középre igazítás trükk: abszolút pozíció a headeren belül */
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: auto;
+            /* Nem nyújtjuk ki */
+            min-width: 250px;
+            /* Egy minimális szélesség, hogy jól nézzen ki */
+        }
+
+        .mode-option {
+            flex: 1;
+            display: flex;
+            /* Flexbox bekapcsolása */
+            align-items: center;
+            /* Függőleges középre igazítás */
+            justify-content: center;
+            /* Vízszintes középre igazítás */
+            gap: 6px;
+            /* Térköz az ikon és a szöveg között */
+
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 4px;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        /* Biztosítsuk, hogy az ikon ne tolja el a sor magasságát */
+        .mode-option .lucide {
+            display: block;
+            flex-shrink: 0;
+        }
+
+        .mode-option.active {
+            background: var(--bg-panel);
+            color: var(--text-main);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .mode-option:hover {
+            color: var(--text-main);
+        }
+
+        /* --- LAYER LIST (LEFT PANEL) --- */
+        /* A JS ebbe a konténerbe generálja a "kártyákat". Átformázzuk őket CSS-el. */
+
+        #sliders-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px 4px;
+            /* Normál, szimmetrikus padding */
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-subtle) transparent;
+        }
+
+        /* Görgetősáv (Chrome/Edge) */
+        #sliders-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #sliders-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #sliders-container::-webkit-scrollbar-thumb {
+            background-color: #ccc;
+            border-radius: 20px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+        }
+
+        #sliders-container::-webkit-scrollbar-thumb:hover {
+            background-color: #aaa;
+            /* Sötétebb, ha fölé viszed */
+        }
+
+        /* --- RÉTEG KÁRTYA ALAPÁLLAPOT --- */
+        .edit-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.2s ease;
+            overflow: hidden;
+            position: relative;
+        }
+
+
+        /* Elválasztó vonal jelzése drag-and-drop közben */
+        .edit-card.drop-top {
+            border-top: 4px solid var(--accent-color) !important;
+        }
+
+        .edit-card.drop-bottom {
+            border-bottom: 4px solid var(--accent-color) !important;
+        }
+
+        /* A mozgatott elem elhalványítása */
+        .edit-card.dragging {
+            opacity: 0.4;
+            border: 1px dashed var(--text-muted);
+        }
+
+
+        /* Az aktív kártya marad folytonos keretes */
+        .edit-card.active {
+            border: 2px solid var(--accent-color) !important;
+            background-color: #e6f0ff !important;
+            z-index: 2;
+        }
+
+        /* Kiválasztott, de nem elsődleges kártya (szaggatott kék keret) */
+        .edit-card.selected:not(.active) {
+            border: 2px dashed var(--accent-color) !important;
+            background-color: #f0f7ff !important;
+        }
+
+
+        /* --- HOVER EFFEKT: CSAK HA NEM AKTÍV --- */
+        /* A :not(.active) biztosítja, hogy ha ott a class, ez a szabály érvénytelen legyen */
+        .edit-card:not(.active):hover {
+            border-color: #bbb;
+            background-color: var(--hover-bg);
+            cursor: pointer;
+        }
+
+        /* Belső fejléc hover tiltása aktívnál */
+        .edit-card.active .edit-card-header {
+            background-color: transparent !important;
+            cursor: default;
+        }
+
+
+
+
+        .edit-card:hover {
+            border-color: #bbb;
+            background-color: var(--hover-bg);
+        }
+
+        /* Fejléc */
+        .edit-card-header {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            gap: 10px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+
+
+
+        .edit-card-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-main);
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .edit-thumb-container {
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--border-subtle);
+            border-radius: 4px;
+            background: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* Aktív állapot */
+        .edit-card[style*="border: 1px solid var(--accent-color)"] {
+            border: 2px solid var(--accent-color) !important;
+            background-color: #f0f8ff !important;
+        }
+
+        .edit-thumb {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .edit-card-controls {
+            display: none;
+            padding: 10px;
+            border-top: 1px solid var(--border-subtle);
+            background-color: #fafafa;
+            animation: slideDown 0.2s ease-out;
+            /* Biztosítjuk, hogy ne lógjon ki semmi */
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        /* Ha aktív a kártya, megjelenik a vezérlő */
+        .edit-card.active .edit-card-controls {
+            display: block;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            /* A gap fontos, de nem lehet túl nagy */
+            gap: 8px;
+            margin-bottom: 8px;
+            width: 100%;
+            /* Kitölti a rendelkezésre álló helyet */
+        }
+
+
+        .control-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-icon {
+            font-size: 14px;
+            width: 20px;
+            text-align: center;
+            opacity: 0.6;
+            flex-shrink: 0;
+            /* Az ikon ne nyomódjon össze */
+        }
+
+        .control-slider {
+            flex: 1;
+            /* Kitölti a maradék helyet */
+            min-width: 0;
+            /* KULCSFONTOSSÁGÚ: Engedi a csúszkát összenyomódni, ha szűk a hely */
+            height: 4px;
+            -webkit-appearance: none;
+            background: #ddd;
+            border-radius: 2px;
+            cursor: pointer;
+            margin: 0;
+            /* Reset */
+        }
+
+
+        .control-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--text-main);
+        }
+
+        /* Külön stílus a forgatás csúszkának (ami -180-tól indul) */
+        .control-slider[min="-180"],
+        .ft-slider[min="-180"] {
+            /* Lineáris gradienssel rajzolunk vonalakat a háttérre */
+            background: linear-gradient(to right,
+                    #ddd 0%,
+                    #ddd 24.5%, #999 25%, #ddd 25.5%,
+                    /* -90 fok jelölő (vékony szürke) */
+                    #ddd 49.0%, #333 50%, #ddd 51.0%,
+                    /* 0 fok jelölő (vastagabb sötét) */
+                    #ddd 74.5%, #999 75%, #ddd 75.5%,
+                    /* 90 fok jelölő (vékony szürke) */
+                    #ddd 100%) !important;
+        }
+
+        .control-input {
+            width: 42px;
+            /* Fix szélesség a számnak */
+            padding: 3px 0;
+            font-size: 11px;
+            text-align: center;
+            border: 1px solid var(--border-subtle);
+            border-radius: 4px;
+            background: #fff;
+            flex-shrink: 0;
+            /* A számmező ne nyomódjon össze */
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* A régi lebegő toolbart elrejtjük */
+        #floating-toolbar {
+            display: none !important;
+        }
+
+
+        /* Törlés gomb */
+        .btn-delete-icon {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 6px;
+            border-radius: 4px;
+            opacity: 0.6;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-delete-icon:hover {
+            opacity: 1;
+            background-color: #fff1f0;
+            /* Halvány piros háttér */
+            color: var(--danger);
+        }
+
+        /* --- KÁRTYA HOVER LOGIKA --- */
+
+        /* 1. Alap (nem kijelölt) kártya hover */
+        .edit-card:not(.selected):not(.active):hover {
+            border-color: #bbb;
+            background-color: #f0f0f0;
+            cursor: pointer;
+        }
+
+        /* 2. Kijelölt (selected), de nem aktív kártya hover */
+        .edit-card.selected:not(.active):hover {
+            background-color: #e1efff;
+            /* Sötétebb kék a világoskék helyett */
+            border-style: dashed;
+        }
+
+        /* 3. Aktív (elsődleges) kártya hover */
+        .edit-card.active:hover {
+            background-color: #dbeafe;
+            /* Még egy fokkal mélyebb kék visszajelzés */
+        }
+
+        /* A belső fejléc hoverét is igazítjuk, hogy ne ütközzön */
+        .edit-card-header:hover {
+            background-color: transparent;
+            /* A szülő kártya kezeli a háttérszínt */
+        }
+
+        .btn-reset-icon {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 6px;
+            border-radius: 4px;
+            opacity: 0.6;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-reset-icon:hover {
+            opacity: 1;
+            background-color: #eee;
+            /* Csak egy finom háttér, forgatás nélkül */
+            transform: none;
+        }
+
+        /* 1. A FŐ MENTÉS GOMB STÍLUSA IKONNAL */
+        .main-btn {
+            background: var(--text-main);
+            color: var(--bg-panel);
+            border: none;
+            width: 100%;
+            padding: 12px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: auto;
+            /* Flexbox az ikon+szöveg igazításához */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            /* Távolság az ikon és szöveg között */
+            transition: opacity 0.2s ease;
+        }
+
+        .main-btn:hover {
+            opacity: 0.9;
+        }
+
+        main-btn .lucide {
+            width: 18px;
+            height: 18px;
+            stroke-width: 2.5px;
+            /* Kicsit vastagabb ikon a sötét gombon */
+        }
+
+        .shuffle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: transparent;
+            /* Nem akar kiemelkedni a síkból */
+            border: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+            /* Alapból szürke, mint a többi felirat */
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+
+            /* A felirat stílusa megegyezik a többi címkével */
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+
+            transition: all 0.2s ease;
+        }
+
+        .shuffle-btn:hover {
+            background-color: var(--hover-bg);
+            color: var(--text-main);
+            /* Csak hoverre lesz sötétebb */
+            border-color: #bbb;
+        }
+
+        .shuffle-btn .lucide {
+            width: 13px;
+            height: 13px;
+            opacity: 0.7;
+        }
+
+        /* --- FLOATING TOOLBAR (A vásznon) --- */
+        #floating-toolbar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-panel);
+            padding: 10px 15px;
+            border-radius: 50px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+            display: none;
+            align-items: center;
+            gap: 15px;
+            z-index: 100;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .ft-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ft-icon {
+            font-size: 14px;
+            opacity: 0.5;
+        }
+
+        .ft-slider {
+            -webkit-appearance: none;
+            height: 4px;
+            background: #ddd;
+            border-radius: 2px;
+            width: 80px;
+        }
+
+        .ft-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--text-main);
+            cursor: pointer;
+        }
+
+        .ft-value-input {
+            width: 40px;
+            border: none;
+            background: var(--hover-bg);
+            padding: 4px;
+            text-align: center;
+            font-family: monospace;
+            font-size: 11px;
+            border-radius: 4px;
+        }
+
+        .ft-close-btn {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background: var(--text-main);
+            color: var(--bg-panel);
+            border-radius: 50%;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .ft-delete-btn {
+            color: var(--danger);
+            font-size: 11px;
+            font-weight: 700;
+            background: none;
+            border: none;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .bg-checkerboard {
+            background-color: #ffffff;
+
+            /* Egyetlen réteg, ami 4 részre osztja a 20x20-as területet */
+            background-image: conic-gradient(#eee 25%,
+                    white 0 50%,
+                    #eee 0 75%,
+                    white 0) !important;
+
+            /* Fix méret */
+            background-size: 20px 20px !important;
+
+            /* Fontos: A korábbi eltolás (background-position) itt nem kell! */
+            background-position: 0 0 !important;
+        }
+
+        .bg-white {
+            background: #fff;
+        }
+
+        #grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Hide inputs visually */
+        #gridSizeSlider {
+            display: none;
+        }
+
+        /* Download Link Wrapper */
+        #downloadLink {
+            text-decoration: none;
+            width: 100%;
+            display: block;
+        }
+
+        #processingOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(4px);
+            /* CSÖKKENTVE: Így a menük felette maradhatnak */
+            z-index: 9999 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(0, 123, 255, 0.1);
+            border-top: 5px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            /* Megakadályozzuk, hogy bármilyen margó eltolja */
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* --- START SCREEN STÍLUSOK --- */
+        #start-screen {
+            grid-column: 1 / -1;
+            /* Teljes szélesség */
+            grid-row: 2 / -1;
+            /* A fejléc alatti összes hely */
+            background-color: var(--bg-app);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            z-index: 100;
+        }
+
+        .upload-zone {
+            width: 100%;
+            max-width: 600px;
+            height: 400px;
+            border: 3px dashed var(--border-subtle);
+            border-radius: 20px;
+            background-color: var(--bg-panel);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-align: center;
+            user-select: none;
+            /* Megakadályozza, hogy véletlenül kijelöljük a szöveget kattintáskor */
+            padding: 40px;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.drag-over {
+            border-color: var(--accent-color);
+            background-color: var(--hover-bg);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .upload-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-main);
+        }
+
+        .upload-desc {
+            font-size: 14px;
+            color: var(--text-muted);
+            max-width: 300px;
+            line-height: 1.5;
+        }
+
+        /* Segédosztály az elemek elrejtésére */
+        .d-none {
+            display: none !important;
+        }
+
+        /* --- MODAL STÍLUSOK --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            /* Félig átlátszó fekete */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(2px);
+            /* Kis homályosítás a háttéren */
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .modal-content {
+            background: var(--bg-panel);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+            text-align: center;
+            animation: scaleUp 0.2s ease-out;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .modal-close:hover {
+            color: var(--danger);
+        }
+
+        /* A Modalban lévő zóna kisebb legyen, mint a kezdőképernyőn */
+        .upload-zone.modal-zone {
+            height: 200px;
+            margin-top: 15px;
+            padding: 20px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes scaleUp {
+            from {
+                transform: scale(0.9);
+            }
+
+            to {
+                transform: scale(1);
+            }
+        }
+
+        /* Másodlagos gomb (Új képek) stílusa a sidebarban */
+        .secondary-btn {
+            background: var(--bg-panel);
+            color: var(--text-main);
+            border: 1px solid var(--border-subtle);
+            width: 100%;
+            padding: 12px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+            /* Picit kisebb betű, mint a fő gomb */
+        }
+
+        .secondary-btn:hover {
+            background: var(--hover-bg);
+            border-color: var(--text-muted);
+        }
+
+
+        /* --- KÖZÉPSŐ OSZLOP ELRENDEZÉS --- */
+        .canvas-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+
+            /* VÁLTOZÁS: 8px -> 20px (Több levegőt adunk neki) */
+            gap: 15px;
+
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 2. Vászon: Helyet hagyunk a nagyobb résnek */
+        #canvas-wrapper {
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+            width: auto;
+            max-width: 100%;
+
+            /* VÁLTOZÁS: Levonjuk a gombot és a nagyobb rést a magasságból */
+            max-height: calc(100% - 60px);
+
+            aspect-ratio: 1 / 1;
+            position: relative;
+            cursor: crosshair;
+        }
+
+
+        /* --- VÁSZON TÖRLÉSE GOMB (ÁLLANDÓ PIROS STÍLUS) --- */
+        .canvas-reset-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: transparent;
+
+            /* Alapból piros keret és szöveg */
+            border: 1px solid rgba(255, 77, 79, 0.4);
+            color: var(--danger);
+
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+        }
+
+        .canvas-reset-btn:hover {
+            background-color: #fff1f0;
+            /* Halvány piros háttér */
+            border-color: var(--danger);
+            /* Erősebb keret hoverre */
+            box-shadow: 0 1px 4px rgba(255, 77, 79, 0.1);
+        }
+
+        .canvas-reset-btn .lucide {
+            width: 13px;
+            height: 13px;
+            /* Az ikon is örökli a piros színt */
+            stroke: currentColor;
+        }
+
+        .toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* Elválasztó vonal jelzése */
+        .edit-card.drop-top {
+            border-top: 4px solid var(--accent-color) !important;
+            margin-top: -2px;
+            /* Hogy ne tolja el a többi kártyát */
+        }
+
+        .edit-card.drop-bottom {
+            border-bottom: 4px solid var(--accent-color) !important;
+            margin-bottom: -2px;
+        }
+
+
+        /* Kompakt feltöltő zóna az oldalsávhoz */
+        .upload-zone.sidebar-zone {
+            height: auto;
+            padding: 15px;
+            border-width: 2px;
+            background-color: #fafafa;
+            cursor: pointer !important;
+        }
+
+        .upload-zone.sidebar-zone .upload-icon {
+            margin-bottom: 0;
+            opacity: 0.7;
+        }
+
+        .upload-zone.sidebar-zone:hover {
+            transform: none;
+            /* Itt ne mozogjon a kártya */
+            background-color: var(--hover-bg);
+        }
+
+
+        .sidebar-bottom-actions {
+            background: var(--bg-panel);
+            /* Válaszuk el az alsó fix blokkot */
+            gap: 12px;
+        }
+
+        /* Ikonok alapméretezése */
+        .lucide {
+            width: 18px;
+            height: 18px;
+            stroke-width: 2px;
+            vertical-align: middle;
+        }
+
+        /* Kisebb ikonok a gombokhoz/kártyákhoz */
+        .btn-delete-icon .lucide,
+        .btn-reset-icon .lucide {
+            width: 16px;
+            height: 16px;
+        }
+
+        .upload-icon .lucide {
+            width: 48px;
+            height: 48px;
+            opacity: 0.5;
+        }
+
+        .batch-header {
+            display: flex;
+            justify-content: flex-end;
+            /* Jobbra igazítva */
+            gap: 12px;
+            padding: 4px 8px;
+            margin-bottom: 4px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        /*.btn-compact {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 6px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }*/
+
+        /* Alaphelyzetbe állítás gomb hover */
+        /*.btn-compact.reset:hover {
+            background-color: var(--hover-bg);
+            color: var(--text-main);
+        }*/
+
+        /* Törlés gomb hover - finom pirosodás */
+        /*.btn-compact.delete:hover {
+            background-color: #fff1f0;
+            color: var(--danger);
+        }*/
+
+        /* .btn-compact .lucide {
+            width: 14px;
+
+            height: 14px;
+        }*/
+
+
+        /* A réteglista feletti fix fejléc */
+        .layers-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 4px 10px 0;
+            margin-bottom: 5px;
+            border-bottom: 1px solid var(--border-subtle);
+            min-height: 32px;
+        }
+
+        .layers-title-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* A csoportos gombok konténere */
+        .batch-actions {
+            display: flex;
+            gap: 4px;
+            transition: all 0.3s ease;
+            /* Sima áttűnés */
+        }
+
+        /* Rejtett állapot: halvány és nem kattintható */
+        .batch-actions.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(10px);
+            /* Kis elmozdulás a hatás kedvéért */
+        }
+
+        /* Látható állapot */
+        .batch-actions.visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(0);
+        }
+
+        .btn-batch {
+            background: var(--hover-bg);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-main);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+
+        .btn-batch:hover {
+            background: #eef6ff;
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .btn-batch.del:hover {
+            background: #fff1f0;
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+
+
+        .hud-item {
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+        }
+
+        .hud-item .lucide {
+            width: 18px;
+            height: 18px;
+            color: #64748b;
+            stroke-width: 2px;
+        }
+
+
+
+        .selection-badge {
+            display: flex;
+            align-items: center;
+            background: #eef6ff;
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 8px;
+            color: var(--accent-color);
+        }
+
+        .selection-badge.multi {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .selection-badge.multi .lucide {
+            color: white;
+        }
+
+        .hud-divider {
+            width: 1px;
+            height: 20px;
+            background: #e2e8f0;
+            margin: 0 4px;
+        }
+
+        .hud-label {
+            font-size: 9px;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .hud-value {
+            min-width: 45px;
+            font-family: monospace;
+            font-weight: 700;
+            color: #2563eb;
+            text-align: right;
+            font-size: 13px;
+        }
+
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+
+        .hud-slot {
+            width: 100%;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+
+
+        /* 2. Az oldalsáv terület, ami a fade-eket tartja */
+        #sliders-area {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex: 1;
+        }
+
+        /* KÖZÖS STÍLUS A FADE-EKNEK */
+        #sliders-area::before,
+        #sliders-area::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 40px;
+            z-index: 10;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            /* Sima eltűnés/megjelenés */
+            opacity: 0;
+            /* Alapból rejtve */
+        }
+
+        /* Felső fade */
+        #sliders-area::before {
+            top: 32px;
+            /* A "Rétegek" felirat és a toolbar magassága után induljon */
+            background: linear-gradient(to bottom, var(--bg-panel) 0%, rgba(255, 255, 255, 0) 100%);
+        }
+
+        /* Alsó fade */
+        #sliders-area::after {
+            bottom: 0;
+            background: linear-gradient(to top, var(--bg-panel) 0%, rgba(255, 255, 255, 0) 100%);
+        }
+
+        /* Állapotok, amiket JS-ből kapcsolunk */
+        #sliders-area.show-top-fade::before {
+            opacity: 1;
+        }
+
+        #sliders-area.show-bottom-fade::after {
+            opacity: 1;
+        }
+
+
+        #undoBtn {
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-subtle);
+            background: white;
+        }
+
+        #undoBtn:hover {
+            background: var(--hover-bg);
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        #redoBtn {
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-subtle);
+            background: white;
+        }
+
+        #redoBtn:hover {
+            background: var(--hover-bg);
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        @keyframes flash-white {
+            0% {
+                opacity: 0.3;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .shuffle-anim {
+            animation: flash-white 0.4s ease-out;
+        }
+
+        /* .settings-popover {
+            position: absolute;
+          
+            top: calc(100% + 5px);
+            right: 0;
+
+            background: #ffffff;
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+           
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+
+            width: 280px;
+            padding: 16px;
+            display: none;
+            flex-direction: column;
+            gap: 14px;
+
+           
+            z-index: 99999;
+            pointer-events: auto;
+        }*/
+
+        /*.settings-popover.active {
+            display: flex;
+        }*/
+
+        /* .popover-title {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 8px;
+        }*/
+
+        /* .popover-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-main);
+        }*/
+
+        /* popover-item:hover span {
+            color: var(--accent-color);
+        }*/
+
+        /* Toast értesítés stílusa */
+        .toast-notification {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #222;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 100000;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+        }
+
+        .toast-notification.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast-icon {
+            color: #4cd137;
+            /* Sikeres zöld szín */
+            display: flex;
+        }
+
+        /*#resetBtnHeader:hover {
+            background-color: #fff1f0 !important;
+            border-color: var(--danger) !important;
+            box-shadow: 0 2px 4px rgba(255, 77, 79, 0.1);
+        }*/
+
+        /* --- ÚJ: Animáció definíció a kártyák belépéséhez --- */
+        @keyframes cardEntrance {
+            from {
+                opacity: 0;
+                transform: translateY(40px) scale(0.95);
+                /* Lentről indul és kicsit kisebb */
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                /* Helyére kerül */
+            }
+        }
+
+        /* Mód választó kártyák alapstílusa */
+        .mode-card {
+            background: var(--bg-panel);
+            border: 2px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 30px;
+            width: 220px;
+            cursor: pointer;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+
+            /* --- MÓDOSÍTÁS: Finomabb transition a hover effekthez --- */
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+            /* --- ÚJ: Alapállapotban láthatatlan, és megkapja az animációt --- */
+            opacity: 0;
+            /* Fontos, hogy ne villanjon be az elején */
+            animation: cardEntrance 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        /* --- ÚJ: Késleltetés (Stagger) a kártyáknak --- */
+        /* Az első kártya azonnal indul, a második kicsit később, a harmadik még később */
+        .mode-card:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .mode-card:nth-child(2) {
+            animation-delay: 0.3s;
+        }
+
+        .mode-card:nth-child(3) {
+            animation-delay: 0.5s;
+        }
+
+
+        /* --- MÓDOSÍTOTT HOVER EFFEKT --- */
+        .mode-card:hover:not(.disabled) {
+            border-color: var(--accent-color);
+            /* Kicsit feljebb megy és kicsit megnő */
+            transform: translateY(-8px) scale(1.03);
+            /* Mélyebb, lágyabb árnyék */
+            box-shadow: 0 20px 40px -10px rgba(0, 123, 255, 0.15);
+        }
+
+        /* A disabled kártya hoverje maradjon sima */
+        .mode-card.disabled:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: var(--border-subtle);
+        }
+
+        /* (A belső elemek stílusa változatlan) */
+        .mode-card-icon {
+            width: 60px;
+            height: 60px;
+            background: #f0f7ff;
+            color: var(--accent-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+            /* Ikonnak is adunk egy kis mozgást */
+        }
+
+        /* Ha a kártya fölé viszed az egeret, az ikon is mozduljon picit */
+        .mode-card:hover:not(.disabled) .mode-card-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .mode-card-icon .lucide {
+            width: 32px;
+            height: 32px;
+        }
+
+        .mode-card h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .mode-card p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        :root {
+            --ui-bg: #ffffff;
+            --ui-border: #e2e8f0;
+            --ui-text: #475569;
+            --ui-accent: #2563eb;
+            --ui-danger: #ef4444;
+            --btn-h: 32px;
+        }
+
+        .secondary-header.editor-ui {
+            z-index: 10001 !important;
+            /* Emelt érték */
+            position: relative;
+            overflow: visible !important;
+            /* Hogy a popover kilógathasson */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            background: var(--ui-bg);
+            border-bottom: 1px solid var(--ui-border);
+            font-family: 'Inter', -apple-system, sans-serif;
+            gap: 12px;
+        }
+
+        .toolbar-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            /* Kicsit nagyobb rés a csoportok között */
+        }
+
+        /* Gombok */
+        .btn-compact {
+            height: var(--btn-h);
+            padding: 0 12px;
+            border-radius: 6px;
+            border: 1px solid var(--ui-border);
+            background: white;
+            color: var(--ui-text);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+            font-size: 13px;
+            font-weight: 500;
+            gap: 6px;
+        }
+
+        .btn-compact:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+
+        #addImagesHeaderBtn {
+            background: var(--ui-accent) !important;
+            color: white !important;
+            border: none !important;
+        }
+
+        #downloadBtn {
+            background: #0f172a !important;
+            color: white !important;
+            border: none !important;
+        }
+
+        #resetBtnHeader {
+            color: var(--ui-danger) !important;
+            border-color: #fee2e2 !important;
+        }
+
+        /* JAVÍTOTT Választókapcsoló (Segmented Control) */
+        .segmented-wrapper {
+            display: flex;
+            background: #f1f5f9;
+            padding: 3px;
+            /* Ez tartja bent a fehér részt */
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            align-items: stretch;
+        }
+
+        .segmented-input {
+            display: none;
+        }
+
+        .segmented-label {
+            padding: 4px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        .segmented-input:checked+.segmented-label {
+            background: white;
+            color: var(--ui-accent);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Feliratok */
+        .toolbar-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        .toolbar-separator {
+            width: 1px;
+            height: 20px;
+            background: var(--ui-border);
+        }
+
+
+
+        .popover-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            font-size: 13px;
+            color: var(--ui-text);
+        }
+
+        .toggle-switch-ui {
+            width: 36px;
+            height: 20px;
+            background: #e2e8f0;
+            border-radius: 20px;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+
+        .toggle-checkbox:checked+.toggle-switch-ui {
+            background: #22c55e;
+            /* Vibrant Green */
+        }
+
+
+
+        .toggle-switch-ui::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+
+
+        .toggle-checkbox:checked+.toggle-switch-ui::after {
+            transform: translateX(16px);
+        }
+
+        .toggle-checkbox {
+            display: none;
+        }
+
+
+
+        /* Hover állapot a kapcsolónak */
+        .popover-item:hover .toggle-switch-ui {
+            filter: brightness(0.95);
+        }
+
+
+        /* --- MODERN SETTINGS POPOVER --- */
+        .settings-popover {
+            position: absolute;
+            top: calc(100% + 12px);
+            right: 0;
+            width: 240px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.15),
+                0 0 0 1px rgba(0, 0, 0, 0.05);
+            display: none;
+            flex-direction: column;
+            z-index: 10002 !important;
+            padding: 6px;
+            animation: popoverEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes popoverEnter {
+            from {
+                opacity: 0;
+                transform: translateY(-8px) scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .settings-popover.active {
+            display: flex;
+        }
+
+        /* Kis nyíl a popover tetején */
+        .popover-arrow {
+            position: absolute;
+            top: -6px;
+            right: 20px;
+            width: 12px;
+            height: 12px;
+            background: #ffffff;
+            transform: rotate(45deg);
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            border-left: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .popover-header {
+            padding: 10px 12px 6px 12px;
+        }
+
+        .popover-divider {
+            height: 1px;
+            background: var(--ui-border);
+            margin: 6px 8px;
+            opacity: 0.6;
+        }
+
+        .popover-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .popover-item:hover {
+            background: #f1f5f9;
+        }
+
+        .item-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--ui-text);
+        }
+
+        .item-info i {
+            width: 16px;
+            height: 16px;
+            color: #94a3b8;
+            /* Slate-400 */
+        }
+
+
+
+
+        .modern-hud {
+            min-width: auto;
+            max-width: 95vw;
+            padding: 8px 16px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            /* --- MÓDOSÍTOTT RÉSZEK --- */
+            background: rgba(255, 255, 255, 0.75) !important;
+            /* 75%-os fehér átlátszóság */
+            backdrop-filter: blur(2px);
+            /* Elhomályosítja a HUD alatti területet */
+            -webkit-backdrop-filter: blur(2px);
+            /* Safari támogatás */
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            /* Halványabb keret */
+            /* ------------------------- */
+            border-radius: 10px;
+            box-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.12);
+            z-index: 9999;
+            box-sizing: border-box;
+
+        }
+
+        .modern-hud.is-visible {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .hud-item input[type="range"] {
+            width: 100px !important;
+            /* Kisebb csúszkák, hogy ne lógjon ki */
+            margin: 0;
+            cursor: pointer;
+            accent-color: #2563eb;
+            opacity: 0.9;
+        }
+
+        .hud-slider-group input[type="range"] {
+            width: 140px !important;
+            cursor: pointer;
+            accent-color: #2563eb;
+        }
+
+        /* Csúszka csoportok kezelése */
+        .hud-slider-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Lüktető animáció a figyelem felkeltéséhez */
+        @keyframes pulse-attention {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4);
+            }
+
+            50% {
+                transform: scale(1.03);
+                box-shadow: 0 0 15px 5px rgba(37, 99, 235, 0.2);
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+            }
+        }
+
+        /* Finomabb lüktetés a keretnek */
+        @keyframes border-pulse {
+            0% {
+                border-color: var(--border-subtle);
+                background-color: transparent;
+            }
+
+            50% {
+                border-color: var(--ui-accent);
+                background-color: rgba(37, 99, 235, 0.05);
+            }
+
+            100% {
+                border-color: var(--border-subtle);
+                background-color: transparent;
+            }
+        }
+
+        .pulse-button {
+            animation: pulse-attention 2s infinite ease-in-out !important;
+        }
+
+        .pulse-border {
+            animation: border-pulse 2s infinite ease-in-out !important;
+        }
+    </style>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+
+    <div id="mobile-warning">
+        <div style="font-size: 40px; margin-bottom: 20px;">💻</div>
+        <h2>Csak asztali gépen használható</h2>
+        <p style="color: var(--text-muted);">A szerkesztő felület túl összetett mobil képernyőkhöz. Kérjük, nyisd meg
+            számítógépen.</p>
+    </div>
+
+
+
+    <div id="app-container">
+
+        <header class="app-header">
+            <div class="app-title">Képszerkesztő</div>
+        </header>
+
+
+        <div id="start-screen">
+            <div id="upload-step">
+                <div class="upload-zone" id="dropZone">
+                    <div class="upload-icon"><i data-lucide="image-up"></i></div>
+                    <div class="upload-title">Húzd ide a képeket</div>
+                    <div class="upload-desc">vagy kattints a tallózáshoz. Több képet is feltölthetsz egyszerre.</div>
+                </div>
+            </div>
+
+            <div id="mode-selection-step" class="d-none" style="text-align: center;">
+                <h2 style="margin-bottom: 30px;">Hogyan szeretnéd elrendezni a képeket?</h2>
+                <div style="display: flex; gap: 20px; justify-content: center;">
+
+                    <div class="mode-card" onclick="finalizeModeSelection('free')">
+                        <div class="mode-card-icon"><i data-lucide="hand"></i></div>
+                        <h3>Manuális</h3>
+                        <p>Szabadon mozgatható, méretezhető és forgatható képek.</p>
+                    </div>
+
+                    <div class="mode-card" onclick="finalizeModeSelection('grid')">
+                        <div class="mode-card-icon"><i data-lucide="layout-grid"></i></div>
+                        <h3>Segített</h3>
+                        <p>Automatikus rácsba rendezés, fix keretekkel.</p>
+                    </div>
+
+                    <div class="mode-card disabled" style="opacity: 0.5; cursor: not-allowed;">
+                        <div class="mode-card-icon"><i data-lucide="wand-2"></i></div>
+                        <h3>Automata</h3>
+                        <p>(Fejlesztés alatt...)</p>
+                    </div>
+                </div>
+                <button class="secondary-btn" style="margin-top: 30px; width: auto; padding: 10px 20px;"
+                    onclick="backToUpload()">
+                    <i data-lucide="arrow-left"></i> Vissza a feltöltéshez
+                </button>
+            </div>
+        </div>
+
+        <div class="secondary-header editor-ui">
+
+            <div class="toolbar-section">
+                <button id="addImagesHeaderBtn" class="btn-compact"
+                    onclick="document.getElementById('imageInput').click()">
+                    <i data-lucide="plus"></i>
+                    <span>Kép hozzáadása</span>
+                </button>
+
+                <div class="toolbar-separator"></div>
+
+                <div style="display: flex; gap: 4px;">
+                    <button id="undoBtn" class="btn-compact" style="width: 32px; padding: 0;" onclick="undo()"
+                        title="Visszavonás">
+                        <i data-lucide="undo-2"></i>
+                    </button>
+                    <button id="redoBtn" class="btn-compact" style="width: 32px; padding: 0;" onclick="redo()"
+                        title="Ismétlés">
+                        <i data-lucide="redo-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="toolbar-section">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="toolbar-label">Vászon</span>
+                    <div class="segmented-wrapper">
+                        <label>
+                            <input type="radio" name="previewBg" value="white" class="segmented-input" checked
+                                onchange="updatePreviewBg()">
+                            <span class="segmented-label">Fehér</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="previewBg" value="checker" class="segmented-input"
+                                onchange="updatePreviewBg()">
+                            <span class="segmented-label">Rács</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="layout-controls" style="display: flex; align-items: center; gap: 8px;">
+                    <!--<div class="toolbar-separator"></div>-->
+                    <span class="toolbar-label">Elrendezés</span>
+                    <div class="segmented-wrapper">
+                        <label>
+                            <input type="radio" name="layout" value="horizontal" class="segmented-input" checked
+                                onchange="renderCollage()">
+                            <span class="segmented-label">Mellé</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="layout" value="vertical" class="segmented-input"
+                                onchange="renderCollage()">
+                            <span class="segmented-label">Alá</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="toolbar-section">
+                <div style="position: relative;">
+                    <button class="btn-compact" onclick="toggleSettingsMenu(event)" id="settingsBtn">
+                        <i data-lucide="settings-2"></i>
+                        <span>Beállítások</span>
+                    </button>
+
+                    <div id="settingsPopover" class="settings-popover">
+                        <div class="popover-header">
+                            <span class="toolbar-label">Szerkesztő beállításai</span>
+                        </div>
+
+                        <div class="popover-content">
+                            <label class="popover-item">
+                                <div class="item-info">
+                                    <i data-lucide="grid-3x3"></i>
+                                    <span>Segédrács</span>
+                                </div>
+                                <div class="switch-wrapper">
+                                    <input type="checkbox" id="gridToggle" class="toggle-checkbox"
+                                        onchange="toggleGrid()">
+                                    <div class="toggle-switch-ui"></div>
+                                </div>
+                            </label>
+
+                            <label class="popover-item">
+                                <div class="item-info">
+                                    <i data-lucide="magnet"></i>
+                                    <span>Mágneses tapadás</span>
+                                </div>
+                                <div class="switch-wrapper">
+                                    <input type="checkbox" id="snapToggle" class="toggle-checkbox"
+                                        onchange="toggleSnapping()" checked>
+                                    <div class="toggle-switch-ui"></div>
+                                </div>
+                            </label>
+
+                            <label class="popover-item">
+                                <div class="item-info">
+                                    <i data-lucide="layers-2"></i>
+                                    <span>Haladó szerkesztés</span>
+                                </div>
+                                <div class="switch-wrapper">
+                                    <input type="checkbox" id="advancedEditingToggle" class="toggle-checkbox"
+                                        onchange="toggleAdvancedEditing()">
+                                    <div class="toggle-switch-ui"></div>
+                                </div>
+                            </label>
+
+                            <div class="popover-divider"></div>
+
+                            <label class="popover-item">
+                                <div class="item-info">
+                                    <i data-lucide="scissors"></i>
+                                    <span>Auto háttérvágás</span>
+                                </div>
+                                <div class="switch-wrapper">
+                                    <input type="checkbox" id="removeBgToggle" class="toggle-checkbox"
+                                        onchange="toggleBackgroundRemoval()" checked>
+                                    <div class="toggle-switch-ui"></div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="popover-arrow"></div>
+                    </div>
+                </div>
+
+                <button id="resetBtnHeader" class="btn-compact" onclick="resetCollage()" title="Munkaterület ürítése">
+                    <i data-lucide="trash-2"></i>
+                </button>
+
+                <div class="toolbar-separator"></div>
+
+                <button id="downloadBtn" class="btn-compact" onclick="downloadImage()">
+                    <i data-lucide="download"></i>
+                    <span>Mentés</span>
+                </button>
+            </div>
+        </div>
+
+        <main class="main-workspace editor-ui d-none">
+            <div id="processingOverlay">
+                <div class="spinner"></div>
+            </div>
+
+            <div class="canvas-column">
+
+
+
+
+                <div class="hud-slot">
+
+
+                    <div id="canvas-info-hud" class="modern-hud">
+                        <div class="hud-item selection-badge">
+                            <i data-lucide="layers"></i>
+                            <span id="hud-selection-count" style="margin-left: 6px; font-weight: 600;">0 kép</span>
+                        </div>
+
+                        <div class="hud-divider"></div>
+
+                        <div class="hud-item">
+                            <i data-lucide="maximize-2"></i>
+                            <div class="hud-slider-group">
+                                <span class="hud-label" style="margin-left: 6px;">MÉRET</span>
+                                <input type="range" id="hud-zoom-slider" min="0.1" max="2.0" step="0.01"
+                                    onmousedown="startHUDSlide('zoom')" oninput="updateParamFromHUD('zoom', this.value)"
+                                    onmouseup="endHUDSlide()">
+                            </div>
+                            <span class="hud-value" id="hud-zoom-val">1.00x</span>
+                        </div>
+
+                        <div class="hud-divider"></div>
+
+                        <div class="hud-item">
+                            <i data-lucide="rotate-cw"></i>
+                            <div class="hud-slider-group">
+                                <span class="hud-label" style="margin-left: 6px;">FORGATÁS</span>
+                                <input type="range" id="hud-rotate-slider" min="-180" max="180" step="1"
+                                    onmousedown="startHUDSlide('rotate')"
+                                    oninput="updateParamFromHUD('rotate', this.value)" onmouseup="endHUDSlide()">
+                            </div>
+                            <span class="hud-value" id="hud-rot-val">0°</span>
+                        </div>
+                    </div>
+
+                </div>
+
+
+
+                <div id="canvas-wrapper" class="bg-white" style="display:none;">
+                    <canvas id="collageCanvas"></canvas>
+                    <canvas id="grid-overlay"></canvas>
+
+
+                    <div id="selection-layer"
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible;">
+                    </div>
+
+                    <div id="floating-toolbar" onmousedown="event.stopPropagation()">
+                        <div class="ft-close-btn" onclick="deselectImage()" title="Bezárás">×</div>
+                        <div class="ft-row">
+                            <span class="ft-icon">🔍</span>
+                            <input type="range" class="ft-slider" id="ft-zoom" min="0.1" max="3.0" step="0.01">
+                            <input type="text" inputmode="decimal" id="ft-zoom-input" class="ft-value-input"
+                                value="1.00">
+                        </div>
+                        <div class="ft-row">
+                            <span class="ft-icon">🔄</span>
+                            <input type="range" class="ft-slider" id="ft-rotate" min="-180" max="180" step="1">
+                            <input type="text" inputmode="decimal" id="ft-rotate-input" class="ft-value-input"
+                                value="0">
+                        </div>
+                        <div class="ft-actions">
+                            <button class="ft-delete-btn" onclick="removeActiveImageFromToolbar()">Törlés</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!--<button id="resetBtn" class="canvas-reset-btn" onclick="resetCollage()">
+                    <i data-lucide="trash-2"></i>
+                    Vászon törlése
+                </button>-->
+            </div>
+        </main>
+
+        <datalist id="rotation-markers">
+            <option value="-180"></option>
+            <option value="-90"></option>
+            <option value="0"></option>
+            <option value="90"></option>
+            <option value="180"></option>
+        </datalist>
+
+
+        <aside class="sidebar sidebar-right editor-ui d-none">
+
+            <div class="sidebar-section" id="sliders-area"
+                style="display:none; flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <div class="sidebar-label" style="margin:0;">Rétegek</div>
+                    <button id="shuffleBtn" class="shuffle-btn" onclick="shuffleImages()"
+                        style="width: auto; padding: 2px 6px;">Képek megkeverése</button>
+                </div>
+
+                <div id="sliders-container" style="overflow-y: auto; padding-right: 5px; flex: 1;"></div>
+            </div>
+
+            <!--    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px;">
+                 <div class="upload-zone sidebar-zone" id="sidebarDropZone">
+        <div class="upload-icon"><i data-lucide="upload-cloud"></i></div>
+        <div class="upload-title" style="font-size: 13px;">Plusz képek hozzáadása</div>
+        <div class="upload-desc" style="font-size: 10px;">Húzd ide a képeket vagy kattints a tallózáshoz</div>
+    </div>
+
+    
+            </div>-->
+
+        </aside>
+    </div>
+
+    <input type="file" id="imageInput" multiple accept="image/*" onchange="handleFiles(this.files)"
+        style="display: none;">
+
+    <script>
+        /* --- GLOBÁLIS VÁLTOZÓK --- */
+        let originalImages = [];
+        let loadedImages = [];
+        let zoomLevels = [];
+        let imageOffsets = [];
+        let rotations = [];
+        let renderHitBoxes = [];
+
+        let isGridVisible = false;
+        let isSnapEnabled = true; // Alapértelmezés szerint bekapcsolva
+
+        // A globális változók közé (pl. az isSnapEnabled mellé):
+        let isAdvancedEditingEnabled = false;
+
+        // A toggleAdvancedEditing függvény:
+        function toggleAdvancedEditing() {
+            isAdvancedEditingEnabled = document.getElementById('advancedEditingToggle').checked;
+            localStorage.setItem('collage_advanced_editing', isAdvancedEditingEnabled);
+            updateVisualSelection(); // Azonnal frissítjük a fogantyúk láthatóságá
+            updateCanvasHUD();
+        }
+
+        // A loadSavedSettings függvénybe egészítsd ki:
+        const savedAdvanced = localStorage.getItem('collage_advanced_editing');
+        isAdvancedEditingEnabled = (savedAdvanced === 'true');
+        document.getElementById('advancedEditingToggle').checked = isAdvancedEditingEnabled;
+
+        let currentMode = 'grid';
+        let activeImageIndex = -1;
+
+        // Mozgatás változók
+        let isDraggingCanvas = false;
+        let dragStartMouseX = 0;
+        let dragStartMouseY = 0;
+        let dragStartImageX = 0;
+        let dragStartImageY = 0;
+        let isRenderPending = false;
+
+
+
+        /* --- GLOBÁLIS VÁLTOZÓK --- */
+        // ... a többi változó után ...
+        let selectedIndices = new Set(); // Ez tárolja a több kiválasztott képet
+
+        let activeSnapLines = { x: null, y: null }; // Aktuális piros vonalak helye
+        const SNAP_THRESHOLD = 10; // Távolság pixelben, aminél "ugrik" és tapad (pl. 10px)
+
+        let dragStartOffsets = []; // Ebben tároljuk el a képek helyzetét a kattintáskor
+
+
+        // --- TRANSFORM VEZÉRLŐ VÁLTOZÓK ---
+        let isDraggingHandle = null; // 'tl', 'tr', 'bl', 'br', 'rot'
+        let dragStartDist = 0;
+        let dragStartAngle = 0;
+        let dragStartZoom = 1;
+        let dragStartRot = 0;
+        const HANDLE_SIZE = 10; // A sarkok mérete pixelben
+
+
+        let dragStartZooms = []; // Csoportos méretezéshez
+        let dragStartRots = [];  // Csoportos forgatáshoz
+
+        let hasPushedStateForCurrentAction = false;
+        let isKeyMovingSession = false;
+
+
+        let currentDeltaRot = 0;
+        let currentDeltaZoom = 0;
+
+        let dragStartBoxCX = 0;
+        let dragStartBoxCY = 0;
+
+        let isSessionActive = false; // Alapból hamis, amíg nem választottunk módot
+
+        let activeHUDParam = null; // 'zoom', 'rotate' vagy null
+
+
+        let hudStartValues = { zoom: 1, rotate: 0 };
+
+        // Külön tárolók a két mód elrendezéseinek és előzményeinek
+        let layoutStates = {
+            grid: { zoomLevels: [], imageOffsets: [], rotations: [], history: [], redo: [] },
+            free: { zoomLevels: [], imageOffsets: [], rotations: [], history: [], redo: [] }
+        };
+
+        /* --- PERSISTENCE (MENTÉS) LOGIKA --- */
+        const DB_NAME = "KepszerkesztoDB";
+        const STORE_NAME = "munkaterulet";
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 2);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME);
+                    }
+                };
+                request.onsuccess = (e) => resolve(e.target.result);
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+
+        async function saveToPersistentStorage() {
+            const db = await openDB();
+            const tx = db.transaction(STORE_NAME, "readwrite");
+            const store = tx.objectStore(STORE_NAME);
+
+            // Frissítjük a memóriában lévő állapotot a jelenlegi módhoz
+            if (loadedImages.length > 0) {
+                layoutStates[currentMode] = {
+                    zoomLevels: [...zoomLevels],
+                    imageOffsets: JSON.parse(JSON.stringify(imageOffsets)),
+                    rotations: [...rotations],
+                    history: [...historyStack],
+                    redo: [...redoStack]
+                };
+            }
+
+            const savedData = {
+                allImageData: loadedImages.map((img, i) => ({
+                    src: img.src,
+                    uId: img.dataset.uId
+                })),
+                currentMode,
+                layoutStates, // Mindkét mód mentése
+                // Biztonsági mentés a jelenlegi állapotról a legfelső szinten is
+                zoomLevels: [...zoomLevels],
+                imageOffsets: JSON.parse(JSON.stringify(imageOffsets)),
+                rotations: [...rotations],
+                historyStack: [...historyStack],
+                redoStack: [...redoStack],
+                timestamp: Date.now()
+            };
+
+            store.put(savedData, "current_workspace");
+        }
+
+
+
+        async function clearPersistentStorage() {
+            const db = await openDB();
+            const tx = db.transaction(STORE_NAME, "readwrite");
+            const store = tx.objectStore(STORE_NAME);
+            store.delete("current_workspace");
+        }
+
+
+        /* --- UNDO & REDO (VISSZAVONÁS ÉS ISMÉTLÉS) LOGIKA --- */
+        let historyStack = [];
+        let redoStack = []; // Új verem az ismétléshez
+        const MAX_HISTORY = 20;
+
+        function getCurrentState() {
+            // Elmentjük a teljes képadat-struktúrát a visszavonáshoz
+            const state = {
+                images: loadedImages.map((img, i) => ({
+                    src: img.src,
+                    uId: img.dataset.uId,
+                    zoom: zoomLevels[i],
+                    rotation: rotations[i],
+                    offset: { x: imageOffsets[i].x, y: imageOffsets[i].y }
+                })),
+                currentMode: currentMode,
+                activeImageIndex: activeImageIndex,
+                selectedIndices: Array.from(selectedIndices)
+            };
+            return JSON.stringify(state);
+        }
+
+        function pushState() {
+            const currentState = getCurrentState();
+
+            // Ne mentsük el kétszer ugyanazt az állapotot egymás után
+            if (historyStack.length > 0 && historyStack[historyStack.length - 1] === currentState) return;
+
+            historyStack.push(currentState);
+            redoStack = []; // Új műveletnél a redo ürül
+
+            if (historyStack.length > MAX_HISTORY) {
+                historyStack.shift();
+            }
+
+            updateHistoryButtonsUI();
+            saveToPersistentStorage();
+        }
+
+        async function undo() {
+            if (historyStack.length === 0) return;
+
+            // Mentjük a JELENLEGI állapotot a Redo staccbe
+            redoStack.push(getCurrentState());
+
+            // Kivesszük az UTOLSÓ elmentett állapotot
+            const lastState = historyStack.pop();
+            await applyState(lastState);
+
+            saveToPersistentStorage(); // Adatbázis szinkron
+        }
+
+        async function redo() {
+            if (redoStack.length === 0) return;
+
+            // A jelenlegit elrakjuk az Undo-ba
+            historyStack.push(getCurrentState());
+
+            // Előre lépünk
+            const nextState = redoStack.pop();
+            await applyState(nextState);
+
+            saveToPersistentStorage(); // Adatbázis szinkron
+        }
+
+        async function applyState(stateJson) {
+            if (!stateJson) return;
+            const state = JSON.parse(stateJson);
+            const overlay = document.getElementById('processingOverlay');
+            if (overlay) overlay.style.display = 'flex';
+
+            try {
+                // Paraméterek ürítése és újratöltése a mentett állapotból
+                const newLoadedImages = [];
+                const newOriginalImages = [];
+                const newZoomLevels = [];
+                const newRotations = [];
+                const newImageOffsets = [];
+
+                // Megvárjuk, amíg az összes kép betöltődik az adott állapotból
+                for (const item of state.images) {
+                    const img = await new Promise((resolve, reject) => {
+                        const i = new Image();
+                        i.onload = () => resolve(i);
+                        i.onerror = reject;
+                        i.src = item.src;
+                    });
+                    img.dataset.uId = item.uId;
+
+                    newLoadedImages.push(img);
+                    newOriginalImages.push(img); // Szinkronban tartás
+                    newZoomLevels.push(item.zoom);
+                    newRotations.push(item.rotation);
+                    newImageOffsets.push(item.offset);
+                }
+
+                // Globális változók frissítése
+                loadedImages = newLoadedImages;
+                originalImages = newOriginalImages;
+                zoomLevels = newZoomLevels;
+                rotations = newRotations;
+                imageOffsets = newImageOffsets;
+                currentMode = state.currentMode;
+                activeImageIndex = state.activeImageIndex;
+                selectedIndices = new Set(state.selectedIndices);
+
+                // UI Frissítés
+                updateUIControls();
+                renderCollage(true);
+                updateHistoryButtonsUI();
+
+            } catch (err) {
+                console.error("Hiba az állapot visszaállításakor:", err);
+            } finally {
+                if (overlay) overlay.style.display = 'none';
+            }
+        }
+
+
+
+        // UI frissítése: gombok halványítása, ha nincs mit visszavonni/ismételni
+        function updateHistoryButtonsUI() {
+            const uBtn = document.getElementById('undoBtn');
+            const rBtn = document.getElementById('redoBtn');
+
+            if (uBtn) {
+                uBtn.style.opacity = historyStack.length > 0 ? "1" : "0.3";
+                uBtn.style.pointerEvents = historyStack.length > 0 ? "auto" : "none";
+            }
+            if (rBtn) {
+                rBtn.style.opacity = redoStack.length > 0 ? "1" : "0.3";
+                rBtn.style.pointerEvents = redoStack.length > 0 ? "auto" : "none";
+            }
+        }
+
+
+        window.onload = async function () {
+            loadSavedSettings();
+            const overlay = document.getElementById('processingOverlay');
+            if (!overlay) return;
+
+            try {
+                const db = await openDB();
+                const tx = db.transaction(STORE_NAME, "readonly");
+                const store = tx.objectStore(STORE_NAME);
+                const request = store.get("current_workspace");
+
+                // ... (az onload eleje, adatbázis megnyitása marad) ...
+                request.onsuccess = async () => {
+                    const data = request.result;
+                    if (!data || !data.allImageData || data.allImageData.length === 0) {
+                        overlay.style.display = 'none';
+                        toggleView('start');
+                        return;
+                    }
+
+                    isSessionActive = true; // --- ÚJ: Ha van érvényes adat a DB-ben, aktiváljuk a munkamenetet ---
+                    overlay.style.display = 'flex';
+
+                    try {
+                        // 1. Állapotok visszatöltése
+                        layoutStates = data.layoutStates || layoutStates;
+                        currentMode = data.currentMode || 'grid';
+
+                        // Fontos: az éppen aktív értékeket a legfelső szintről vagy a layoutStates-ből vesszük
+                        const savedZoom = data.zoomLevels || (layoutStates[currentMode]?.zoomLevels) || [];
+                        const savedOffsets = data.imageOffsets || (layoutStates[currentMode]?.imageOffsets) || [];
+                        const savedRots = data.rotations || (layoutStates[currentMode]?.rotations) || [];
+
+                        historyStack = data.historyStack || (layoutStates[currentMode]?.history) || [];
+                        redoStack = data.redoStack || (layoutStates[currentMode]?.redo) || [];
+
+                        loadedImages = [];
+                        originalImages = [];
+                        zoomLevels = [];
+                        imageOffsets = [];
+                        rotations = [];
+
+                        // 2. Képek betöltése
+                        for (let i = 0; i < data.allImageData.length; i++) {
+                            const item = data.allImageData[i];
+                            try {
+                                const img = await new Promise((resolve, reject) => {
+                                    const iObj = new Image();
+                                    iObj.onload = () => resolve(iObj);
+                                    iObj.onerror = reject;
+                                    iObj.src = item.src;
+                                });
+                                img.dataset.uId = item.uId;
+                                loadedImages.push(img);
+                                originalImages.push(img);
+
+                                // Adatok hozzárendelése (vagy alapérték, ha hiányzik)
+                                zoomLevels.push(savedZoom[i] !== undefined ? savedZoom[i] : 1.0);
+                                imageOffsets.push(savedOffsets[i] || { x: 0, y: 0 });
+                                rotations.push(savedRots[i] || 0);
+                            } catch (e) { console.error("Hiba egy képnél"); }
+                        }
+
+                        // 3. Felület frissítése
+                        toggleView('editor');
+                        document.querySelectorAll('.mode-option').forEach(el => el.classList.remove('active'));
+                        document.getElementById(`mode-${currentMode}`)?.classList.add('active');
+
+                        snapCanvasSizeToGrid();
+                        setupCanvasInteractions();
+                        updateHistoryButtonsUI();
+                        updateUIControls();
+                        renderCollage();
+
+                    } finally {
+                        overlay.style.display = 'none';
+                    }
+                };
+
+                request.onerror = () => {
+                    overlay.style.display = 'none';
+                    toggleView('start');
+                };
+
+            } catch (err) {
+                console.error("Adatbázis hiba:", err);
+                overlay.style.display = 'none';
+                toggleView('start');
+            }
+
+            window.addEventListener('resize', snapCanvasSizeToGrid);
+            setTimeout(snapCanvasSizeToGrid, 100);
+        };
+
+
+
+
+        /* --- OKOS CLICK OUTSIDE LOGIKA --- */
+        document.addEventListener('mousedown', (e) => {
+            if (activeImageIndex === -1) return;
+
+            if (e.target.closest('.modern-hud')) return;
+            if (e.target.closest('.sidebar')) return; // Ez javítja meg a réteg gombokat!
+            if (e.target.closest('.secondary-header')) return;
+
+            const target = e.target;
+            const canvas = document.getElementById('collageCanvas');
+            if (!canvas) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const mx = (e.clientX - rect.left) * (800 / rect.width);
+            const my = (e.clientY - rect.top) * (800 / rect.height);
+
+            // 1. ELLENŐRZÉS: Fogantyút találtunk-e? (Vásznon kívül is!)
+            const box = renderHitBoxes.find(b => b.index === activeImageIndex);
+            const handle = getHandleAtMouse(mx, my, box);
+            if (handle) return; // Ha fogantyúra kattintasz, NE csinálj semmit (marad a kijelölés)
+
+            // 2. ELLENŐRZÉS: Képet találtunk-e?
+            const hit = getHitFromCoords(mx, my);
+            if (hit.index !== -1) return; // Ha képre kattintasz, marad
+
+            // 3. ELLENŐRZÉS: Védett UI elemek (Toolbar, Sidebar kártyák, Gombok)
+            if (target.closest('#floating-toolbar') ||
+                target.closest('.edit-card') ||
+                target.closest('.secondary-header') ||
+                target.tagName === 'BUTTON' ||
+                target.tagName === 'INPUT' ||
+                target.tagName === 'LABEL') {
+                return;
+            }
+
+            // Ha egyik sem teljesül, akkor tényleg a "semmibe" kattintottál
+            deselectImage();
+        });
+
+        /* --- BEÁLLÍTÁSOK BETÖLTÉSE (SNAP NÉLKÜL) --- */
+        function loadSavedSettings() {
+            // 1. Háttér eltávolítás (Remove BG) betöltése
+            const savedRemoveBg = localStorage.getItem('collage_remove_bg');
+            const removeBgEl = document.getElementById('removeBgToggle');
+            if (removeBgEl) {
+                removeBgEl.checked = savedRemoveBg === null ? true : savedRemoveBg === 'true';
+            }
+            const savedSnap = localStorage.getItem('collage_snap_enabled');
+            if (savedSnap !== null) {
+                isSnapEnabled = (savedSnap === 'true');
+                document.getElementById('snapToggle').checked = isSnapEnabled;
+            }
+
+            // 2. Rács Engedélyezés (Grid Enabled) betöltése
+            const savedGridEnabled = localStorage.getItem('collage_grid_enabled');
+            // Alapértelmezett: true (bekapcsolva), ha nincs mentett adat
+            isGridVisible = savedGridEnabled === null ? true : (savedGridEnabled === 'true');
+
+
+
+
+            // Kapcsoló UI beállítása
+            const gridToggle = document.getElementById('gridToggle');
+            if (gridToggle) {
+                gridToggle.checked = isGridVisible;
+            }
+
+            // Léptető gombok vizuális állapota (aktív / inaktív)
+            const stepperGroup = document.getElementById('grid-stepper-group');
+            if (stepperGroup) {
+                stepperGroup.style.opacity = isGridVisible ? '1' : '0.3';
+                stepperGroup.style.pointerEvents = isGridVisible ? 'auto' : 'none';
+            }
+
+            // 3. Rács Méret (Grid Size) betöltése és ELLENŐRZÉSE
+            const savedGridSize = localStorage.getItem('collage_grid_size');
+            let currentSize = savedGridSize !== null ? parseInt(savedGridSize) : 4; // Alapértelmezés: 4
+
+            // BIZTONSÁGI ELLENŐRZÉS:
+            // Ha a mentett érték nincs benne az engedélyezett (páros) listában (pl. régen 5 volt),
+            // vagy sérült az adat, akkor visszaállítjuk a stabil 4-esre.
+            // (Feltételezzük, hogy a GRID_VALUES tömb már létezik a kódban)
+            if (typeof GRID_VALUES !== 'undefined' && !GRID_VALUES.includes(currentSize)) {
+                currentSize = 4;
+            }
+
+            // Input érték beállítása
+            const sliderInput = document.getElementById('gridSizeSlider');
+            if (sliderInput) sliderInput.value = currentSize;
+
+            // Szöveg kiírása (pl. "4 egység")
+            const display = document.getElementById('stepperDisplay');
+            if (display) {
+                display.innerText = currentSize + ' egység';
+            }
+
+            // --- ÚJ RÉSZ: Háttér stílus betöltése ---
+            const savedBg = localStorage.getItem('collage_preview_bg') || 'white'; // Alapértelmezett a fehér
+            const bgRadio = document.querySelector(`input[name="previewBg"][value="${savedBg}"]`);
+
+            if (bgRadio) {
+                bgRadio.checked = true;
+                // Meghívjuk a függvényt, hogy a CSS osztályokat is rátegye a vászonra
+                updatePreviewBg();
+            }
+
+            // 4. Rács tényleges kirajzolása a beállítások alapján
+            updateGridSettings();
+        }
+
+
+
+
+        function toggleAdvancedEditing() {
+            isAdvancedEditingEnabled = document.getElementById('advancedEditingToggle').checked;
+            localStorage.setItem('collage_advanced_editing', isAdvancedEditingEnabled);
+            updateVisualSelection();
+            // AZONNALI FRISSÍTÉS:
+            updateCanvasHUD();
+        }
+
+        function setMode(mode) {
+            if (currentMode === mode) return;
+
+            if (loadedImages.length > 0) {
+                layoutStates[currentMode] = {
+                    zoomLevels: [...zoomLevels],
+                    imageOffsets: JSON.parse(JSON.stringify(imageOffsets)),
+                    rotations: [...rotations],
+                    history: [...historyStack],
+                    redo: [...redoStack]
+                };
+            }
+
+            currentMode = mode;
+
+            document.querySelectorAll('.mode-option').forEach(el => el.classList.remove('active'));
+            document.getElementById(`mode-${mode}`)?.classList.add('active');
+
+            if (loadedImages.length > 0) {
+                if (layoutStates[mode].zoomLevels.length > 0) {
+                    zoomLevels = [...layoutStates[mode].zoomLevels];
+                    imageOffsets = JSON.parse(JSON.stringify(layoutStates[mode].imageOffsets));
+                    rotations = [...layoutStates[mode].rotations];
+                    historyStack = [...layoutStates[mode].history];
+                    redoStack = [...layoutStates[mode].redo];
+                } else {
+                    resetPositionsForMode();
+                    historyStack = [];
+                    redoStack = [];
+                }
+
+                updateUIControls();
+                updateHistoryButtonsUI();
+                renderCollage();
+                // AZONNALI FRISSÍTÉS MÓDVÁLTÁSKOR:
+                updateCanvasHUD();
+                saveToPersistentStorage();
+            }
+        }
+
+
+
+
+        function resetPositionsForMode() {
+            // Csak akkor fusson, ha van képünk
+            if (loadedImages.length === 0) return;
+
+            imageOffsets = loadedImages.map(() => ({ x: 0, y: 0 }));
+            rotations = loadedImages.map(() => 0);
+            zoomLevels = loadedImages.map(() => currentMode === 'free' ? 0.8 : 1.0);
+        }
+
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupDropZone(document.getElementById('dropZone'));
+            setupDropZone(document.getElementById('sidebarDropZone'));
+            // toggleView('start');  <-- EZT TÖRÖLD KI, mert ez mindig visszadob a startra!
+            lucide.createIcons();
+            setupSidebarDrop();
+        });
+
+        // Segédfüggvény a drop zónák beállításához
+        function setupDropZone(element) {
+            if (!element) return;
+
+            // --- KATTINTÁS KEZELÉSE ---
+            element.addEventListener('click', () => {
+                const fileInput = document.getElementById('imageInput');
+                if (fileInput) {
+                    fileInput.click();
+                }
+            });
+
+            // --- DRAG & DROP KEZELÉSE ---
+            element.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                element.classList.add('drag-over');
+            });
+
+            element.addEventListener('dragleave', () => {
+                element.classList.remove('drag-over');
+            });
+
+            element.addEventListener('drop', (e) => {
+                e.preventDefault();
+                element.classList.remove('drag-over');
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    handleFiles(e.dataTransfer.files);
+                }
+            });
+        }
+
+
+        async function handleFiles(fileList) {
+            const files = Array.from(fileList);
+            if (files.length === 0) return;
+
+            const overlay = document.getElementById('processingOverlay');
+            if (overlay) overlay.style.display = 'flex';
+
+            try {
+                const newImages = await Promise.all(files.map(file => new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            img.dataset.uId = 'img-' + Date.now() + '-' + Math.floor(Math.random() * 1000000);
+                            resolve(img);
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                })));
+
+                let processedNewImages;
+                const removeBgChecked = document.getElementById('removeBgToggle')?.checked;
+
+                if (removeBgChecked) {
+                    processedNewImages = await processImagesBackground(newImages);
+                    processedNewImages.forEach((img, idx) => {
+                        img.dataset.uId = newImages[idx].dataset.uId;
+                    });
+                } else {
+                    processedNewImages = [...newImages];
+                }
+
+                // Adatok hozzáadása a globális tömbökhöz
+                originalImages.push(...newImages);
+                loadedImages.push(...processedNewImages);
+
+                const defaultZoom = currentMode === 'free' ? 0.8 : 1.0;
+                processedNewImages.forEach(() => {
+                    zoomLevels.push(defaultZoom);
+                    rotations.push(0);
+                    imageOffsets.push({ x: 0, y: 0 });
+                });
+
+                // Átváltás a módválasztóra
+                document.getElementById('upload-step').classList.add('d-none');
+                document.getElementById('mode-selection-step').classList.remove('d-none');
+
+                // UI frissítése (Ez már nem fog elszállni)
+                updateUIControls();
+                renderCollage();
+
+            } catch (error) {
+                console.error("Részletes hiba:", error);
+                alert("Hiba történt a képek feldolgozása közben. Ellenőrizd a konzolt!");
+            } finally {
+                if (overlay) overlay.style.display = 'none';
+                document.getElementById('imageInput').value = '';
+            }
+        }
+
+
+
+        // A régi initCollage most már csak egy híd a handleFiles felé
+        function initCollage() {
+            const input = document.getElementById('imageInput');
+            handleFiles(input.files);
+        }
+
+        async function toggleBackgroundRemoval() {
+            // Ha már folyamatban van egy vágás, ne engedjük újra elindítani
+            const overlay = document.getElementById('processingOverlay');
+            if (overlay && overlay.style.display === 'flex') return;
+
+            localStorage.setItem('collage_remove_bg', document.getElementById('removeBgToggle').checked);
+            if (originalImages.length === 0) return;
+
+            // pushState(); 
+            // Mentünk egy pontot a visszavonáshoz
+
+            if (overlay) overlay.style.display = 'flex';
+
+            // Kis szünetet hagyunk a UI-nak, hogy megjelenítse a töltőt
+            await new Promise(r => setTimeout(r, 100));
+
+            try {
+                if (document.getElementById('removeBgToggle').checked) {
+                    loadedImages = await processImagesBackground(originalImages);
+                } else {
+                    // Fontos: Újraalkotjuk a tömböt az eredetikből
+                    loadedImages = [...originalImages];
+                }
+                renderCollage();
+                saveToPersistentStorage();
+            } catch (err) {
+                console.error("Hiba a háttérvágásnál:", err);
+            } finally {
+                if (overlay) overlay.style.display = 'none';
+            }
+        }
+
+        async function processImagesBackground(images) {
+            return Promise.all(images.map(img => new Promise(resolve => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i]; const g = data[i + 1]; const b = data[i + 2];
+                    if (r > 250 && g > 250 && b > 250) { data[i + 3] = 0; }
+                }
+                ctx.putImageData(imageData, 0, 0);
+                const newImg = new Image();
+                newImg.src = canvas.toDataURL();
+                newImg.onload = () => resolve(newImg);
+            })));
+        }
+
+        // --- BEÁLLÍTÁSOK MENÜ KEZELÉSE ---
+        function toggleSettingsMenu(event) {
+            if (event) event.stopPropagation();
+            const popover = document.getElementById('settingsPopover');
+            if (popover) {
+                popover.classList.toggle('active');
+            }
+        }
+
+        // Bezárás, ha máshova kattintunk
+        document.addEventListener('click', (e) => {
+            const popover = document.getElementById('settingsPopover');
+            const settingsBtn = document.getElementById('settingsBtn');
+            if (popover && popover.classList.contains('active')) {
+                if (!popover.contains(e.target) && !settingsBtn.contains(e.target)) {
+                    popover.classList.remove('active');
+                }
+            }
+        });
+
+        async function resetCollage() {
+            if (!confirm("Biztosan törölni szeretnéd a teljes munkaterületet és az összes előzményt?")) return;
+
+            // 1. Minden aktív változó azonnali ürítése
+            originalImages = [];
+            loadedImages = [];
+            zoomLevels = [];
+            imageOffsets = [];
+            rotations = [];
+            renderHitBoxes = [];
+            selectedIndices.clear();
+            activeImageIndex = -1;
+
+            // 2. Globális előzmények (Undo/Redo) azonnali ürítése
+            historyStack = [];
+            redoStack = [];
+
+            // 3. A két mód külön memóriájának (layoutStates) teljes alaphelyzetbe állítása
+            layoutStates = {
+                grid: { zoomLevels: [], imageOffsets: [], rotations: [], history: [], redo: [] },
+                free: { zoomLevels: [], imageOffsets: [], rotations: [], history: [], redo: [] }
+            };
+
+            // 4. UI frissítése (gombok elszürkítése)
+            updateHistoryButtonsUI();
+            updateUIControls();
+
+            // 5. ADATBÁZIS AZONNALI ÜRÍTÉSE ÉS SZINKRONIZÁLÁSA
+            // Nem csak töröljük, hanem egy üres objektumot mentünk rá, hogy biztosan ne maradjon szemét
+            const db = await openDB();
+            const tx = db.transaction(STORE_NAME, "readwrite");
+            const store = tx.objectStore(STORE_NAME);
+            await store.clear(); // Teljes ürítés az IndexedDB-ben
+
+            // 6. Vászon letakarítása
+            const canvas = document.getElementById('collageCanvas');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // 7. Vissza a kezdőképernyőre
+            toggleView('start');
+            document.getElementById('upload-step').classList.remove('d-none'); // Mutassuk a feltöltőt
+            document.getElementById('mode-selection-step').classList.add('d-none'); // Rejtsük a módválasztót
+            showToast("Minden adat és előzmény törölve", "trash-2", "#ff4d4f");
+        }
+
+
+
+        function updateUIControls(fullRefresh = true) {
+            if (!fullRefresh) return;
+
+            const sliderContainer = document.getElementById('sliders-container');
+            const slidersArea = document.getElementById('sliders-area');
+            const canvasWrapper = document.getElementById('canvas-wrapper');
+            const layoutControls = document.getElementById('layout-controls');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const shuffleBtn = document.getElementById('shuffleBtn');
+            const addBtnHeader = document.getElementById('addImagesHeaderBtn'); // A fejléc gombja
+
+            if (!sliderContainer || !slidersArea) return;
+
+            // A vászon és a mentés gomb maradjon látható az editorban
+            if (canvasWrapper) canvasWrapper.style.display = 'block';
+            if (downloadBtn) downloadBtn.style.display = 'inline-flex';
+
+            // --- ÜRES ÁLLAPOT KEZELÉSE ---
+            if (loadedImages.length === 0) {
+                slidersArea.style.display = 'flex';
+                if (shuffleBtn) shuffleBtn.style.display = 'none';
+                if (layoutControls) layoutControls.style.display = 'none';
+
+                if (addBtnHeader) addBtnHeader.classList.add('pulse-button');
+
+                sliderContainer.innerHTML = `
+            <div class="pulse-border" onclick="document.getElementById('imageInput').click()" style="
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                flex: 1;
+                min-height: 200px;
+                padding: 20px; 
+                text-align: center; 
+                color: var(--ui-accent); 
+                font-size: 11px; 
+                font-weight: 800; 
+                text-transform: uppercase; 
+                letter-spacing: 1px;
+                border: 2px dashed var(--ui-accent);
+                border-radius: 8px;
+                margin: 0 5px 10px 5px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            ">
+                <i data-lucide="image-plus" style="width: 32px; height: 32px; margin-bottom: 15px;"></i>
+                Kattintson ide vagy a fenti gombra<br>új képek betöltéséhez
+            </div>
+        `;
+
+                if (window.lucide) lucide.createIcons();
+                updateScrollFades();
+                return;
+            }
+
+            // --- HA VANNAK KÉPEK (Normál működés) ---
+
+            // Villogás kikapcsolása
+            if (addBtnHeader) addBtnHeader.classList.remove('pulse-button');
+            slidersArea.style.display = 'flex';
+
+            if (layoutControls) {
+                layoutControls.style.display = (currentMode === 'grid' && loadedImages.length === 2) ? 'flex' : 'none';
+            }
+
+            if (shuffleBtn) {
+                shuffleBtn.style.display = (loadedImages.length >= 2 && currentMode !== 'free') ? 'inline-flex' : 'none';
+            }
+
+            sliderContainer.innerHTML = '';
+
+            // Batch (csoportos) gombok, ha több kép van kijelölve
+            if (selectedIndices.size > 1) {
+                const batchHeader = document.createElement('div');
+                batchHeader.className = 'batch-header';
+                batchHeader.innerHTML = `
+            <button class="btn-batch" onclick="batchResetSelected()">
+                <i data-lucide="rotate-ccw"></i> Reset (${selectedIndices.size})
+            </button>
+            <button class="btn-batch del" onclick="batchDeleteSelected()">
+                <i data-lucide="trash-2"></i> Törlés
+            </button>
+        `;
+                sliderContainer.appendChild(batchHeader);
+            }
+
+            loadedImages.forEach((img, index) => {
+                const isPrimary = (index === activeImageIndex);
+                const isSelected = selectedIndices.has(index);
+
+                const card = document.createElement('div');
+                card.className = `edit-card ${isPrimary ? 'active' : (isSelected ? 'selected' : '')}`;
+                card.dataset.index = index;
+                card.draggable = true;
+
+                card.addEventListener('dragstart', handleDragStart);
+                card.addEventListener('dragover', handleDragOver);
+                card.addEventListener('dragleave', handleDragLeave);
+                card.addEventListener('drop', handleDrop);
+                card.addEventListener('click', (e) => selectImageFromSidebar(index, e));
+
+                card.innerHTML = `
+            <div class="edit-card-header">
+                <div class="edit-thumb-container">
+                    <img src="${img.src}" class="edit-thumb">
+                </div>
+                <span class="edit-card-title">${index + 1}. kép</span>
+                <div style="display: flex; gap: 4px;">
+                    <button class="btn-reset-icon" onclick="event.stopPropagation(); resetImageParams(${index})" title="Alaphelyzet">
+                        <i data-lucide="undo-2"></i>
+                    </button>
+                    <button class="btn-delete-icon" onclick="event.stopPropagation(); removeImage(${index})" title="Törlés">
+                        <i data-lucide="trash-2"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+                sliderContainer.appendChild(card);
+            });
+
+            if (window.lucide) lucide.createIcons();
+            updateScrollFades();
+        }
+
+
+
+
+        function updateLayerParam(index, type, value) {
+            let val = parseFloat(value);
+            let indicesToUpdate = selectedIndices.has(index) ? Array.from(selectedIndices) : [index];
+
+            if (type === 'zoom') {
+                indicesToUpdate.forEach(idx => {
+                    zoomLevels[idx] = val;
+                    updateCardUI(idx, 'zoom', val);
+                });
+            } else if (type === 'rotate') {
+                let finalVal = parseInt(val);
+
+                // --- PROFESSZIONÁLIS FORGATÁS SNAP (45 fokonként) ---
+                // A 0, 45, 90, 135, 180, -45, -90, -135, -180 pontokon "megakad"
+                const snapPoints = [-180, -135, -90, -45, 0, 45, 90, 135, 180];
+                const threshold = 5; // 5 fokos körzetben rántja be
+
+                for (let p of snapPoints) {
+                    if (Math.abs(finalVal - p) <= threshold) {
+                        finalVal = p;
+                        break;
+                    }
+                }
+
+                indicesToUpdate.forEach(idx => {
+                    rotations[idx] = finalVal;
+                    updateCardUI(idx, 'rotate', finalVal);
+                });
+            }
+
+            renderCollage();
+        }
+
+        // SEGÉDFÜGGVÉNY: Frissíti a számokat és csúszkákat a Sidebarban a többi kártyán is
+        function updateCardUI(index, type, value) {
+            const card = document.querySelector(`.edit-card[data-index='${index}']`);
+            if (!card) return;
+
+            const inputs = card.querySelectorAll('.control-input');   // Szöveges mezők
+            const sliders = card.querySelectorAll('.control-slider'); // Csúszkák
+
+            if (type === 'zoom') {
+                if (inputs[0]) inputs[0].value = value.toFixed(2);
+                if (sliders[0] && parseFloat(sliders[0].value) !== value) sliders[0].value = value;
+            } else if (type === 'rotate') {
+                if (inputs[1]) inputs[1].value = value;
+                if (sliders[1] && parseInt(sliders[1].value) !== value) sliders[1].value = value;
+            }
+        }
+
+        let dragStartIndex = null;
+        let dropPosition = 'top'; // 'top' vagy 'bottom'
+
+        function handleDragStart(e) {
+            // Csak a kártyát lehessen fogni, a gombokat/inputokat ne
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                e.preventDefault();
+                return;
+            }
+
+            dragStartIndex = parseInt(this.dataset.index);
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            if (parseInt(this.dataset.index) === dragStartIndex) return;
+
+            const rect = this.getBoundingClientRect();
+            const midpoint = rect.top + rect.height / 2;
+
+            // Meghatározzuk, hogy a kártya felső vagy alsó felén állunk
+            if (e.clientY < midpoint) {
+                dropPosition = 'top';
+                this.classList.add('drop-top');
+                this.classList.remove('drop-bottom');
+            } else {
+                dropPosition = 'bottom';
+                this.classList.add('drop-bottom');
+                this.classList.remove('drop-top');
+            }
+        }
+
+        function handleDragLeave() {
+            this.classList.remove('drop-top', 'drop-bottom');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            this.classList.remove('drop-top', 'drop-bottom', 'dragging');
+
+            const targetIndex = parseInt(this.dataset.index);
+            if (dragStartIndex === null || dragStartIndex === targetIndex) return;
+
+            // Kiszámoljuk az új indexet
+            let newIndex = targetIndex;
+            if (dropPosition === 'bottom') {
+                newIndex = targetIndex + 1;
+            }
+
+            // Ha a listában lejjebb mozgatjuk, az index korrekcióra szorul a splice miatt
+            if (dragStartIndex < newIndex) {
+                newIndex--;
+            }
+
+            // Elmentjük az állapotot az Undo-hoz
+            pushState();
+
+            // Végrehajtjuk az áthelyezést az összes tömbben
+            const moveInArray = (arr) => {
+                const item = arr[dragStartIndex];
+                arr.splice(dragStartIndex, 1);
+                arr.splice(newIndex, 0, item);
+            };
+
+            [loadedImages, originalImages, zoomLevels, imageOffsets, rotations].forEach(moveInArray);
+
+            // Frissítjük a kijelölt indexet, hogy kövesse a mozgatott képet
+            activeImageIndex = newIndex;
+            selectedIndices.clear();
+            selectedIndices.add(newIndex);
+
+            // UI és Vászon újrarajzolása
+            updateUIControls();
+            renderCollage();
+        }
+
+
+        function reorderLayers(from, to, position) {
+            // Meghatározzuk a pontos új pozíciót
+            let newIndex = to;
+
+            // Ha a kártya ALÁ dobjuk, az index eggyel nő
+            if (position === 'bottom') {
+                newIndex = to + 1;
+            }
+
+            // Ha a listában lejjebb rakjuk, a kivétel miatt eltolódnak az indexek
+            if (from < newIndex) {
+                newIndex--;
+            }
+
+            const move = (arr) => {
+                const item = arr[from];
+                arr.splice(from, 1);
+                arr.splice(newIndex, 0, item);
+            };
+
+            [loadedImages, originalImages, zoomLevels, imageOffsets, rotations].forEach(move);
+
+            // Kijelölés frissítése az új helyre
+            selectedIndices.clear();
+            activeImageIndex = newIndex;
+            selectedIndices.add(newIndex);
+        }
+
+
+        // Átnevezzük és pontosítjuk a mozgatást (nem csak csere, hanem beillesztés)
+        function reorderArrayItems(fromIndex, toIndex) {
+            const move = (arr) => {
+                const item = arr[fromIndex];
+                arr.splice(fromIndex, 1);
+                arr.splice(toIndex, 0, item);
+            };
+
+            move(loadedImages);
+            move(originalImages);
+            move(zoomLevels);
+            move(imageOffsets);
+            move(rotations);
+
+            // Kijelölés követése
+            if (activeImageIndex === fromIndex) {
+                activeImageIndex = toIndex;
+            } else {
+                // Ha a mozgatás érintette a kijelölt indexet, frissíteni kell
+                selectedIndices.clear(); // Egyszerűség kedvéért mozgatáskor töröljük a csoportos kijelölést
+                activeImageIndex = -1;
+            }
+        }
+
+        function swapArrayItems(fromIndex, toIndex) {
+            const move = (arr) => { const item = arr[fromIndex]; arr.splice(fromIndex, 1); arr.splice(toIndex, 0, item); };
+            move(loadedImages); move(originalImages); move(zoomLevels); move(imageOffsets); move(rotations);
+            if (activeImageIndex === fromIndex) activeImageIndex = toIndex;
+            else if (activeImageIndex === toIndex && fromIndex < toIndex) activeImageIndex--;
+            else if (activeImageIndex === toIndex && fromIndex > toIndex) activeImageIndex++;
+        }
+
+
+
+
+        let isHUDSliding = false;
+
+
+        function startHUDSlide(type) {
+            if (activeImageIndex === -1) return;
+
+            isHUDSliding = true;
+            activeHUDParam = type;
+            hasPushedStateForCurrentAction = false;
+
+            const slider = document.getElementById(type === 'zoom' ? 'hud-zoom-slider' : 'hud-rotate-slider');
+
+            if (type === 'zoom') {
+                // A csúszka felveszi az elsődleges kép pontos értékét
+                slider.value = zoomLevels[activeImageIndex];
+                // Ezt az értéket mentjük el kezdőpontnak a csúszkához
+                hudStartValues.zoom = parseFloat(slider.value);
+                dragStartZooms = [...zoomLevels];
+            } else if (type === 'rotate') {
+                slider.value = rotations[activeImageIndex];
+                hudStartValues.rotate = parseInt(slider.value);
+                dragStartRots = [...rotations];
+            }
+
+            currentDeltaZoom = 0;
+            currentDeltaRot = 0;
+        }
+
+
+        function endHUDSlide() {
+            isHUDSliding = false;
+            activeHUDParam = null;
+
+            // Utolsó igazítás: a csúszka vegye fel a kerekített, végleges értéket
+            if (activeImageIndex !== -1) {
+                const zSlider = document.getElementById('hud-zoom-slider');
+                const rSlider = document.getElementById('hud-rotate-slider');
+                if (zSlider) zSlider.value = zoomLevels[activeImageIndex];
+                if (rSlider) rSlider.value = rotations[activeImageIndex];
+            }
+
+            currentDeltaZoom = 0;
+            currentDeltaRot = 0;
+
+            updateCanvasHUD();
+            renderCollage(true);
+            saveToPersistentStorage();
+        }
+
+
+
+        function updateParamFromHUD(type, value) {
+            if (activeImageIndex === -1) return;
+
+            if (!hasPushedStateForCurrentAction) {
+                pushState();
+                hasPushedStateForCurrentAction = true;
+            }
+
+            let rawVal = parseFloat(value);
+
+            if (type === 'rotate') {
+                const snapPoints = [-180, -135, -90, -45, 0, 45, 90, 135, 180];
+                let finalValue = rawVal;
+                for (let p of snapPoints) {
+                    if (Math.abs(rawVal - p) < 6) { finalValue = p; break; }
+                }
+
+                currentDeltaRot = Math.round(finalValue - hudStartValues.rotate);
+
+                selectedIndices.forEach(idx => {
+                    if (idx === activeImageIndex) {
+                        rotations[idx] = finalValue; // Az elsődleges kép tűpontosan követi a snappelt csúszkát
+                    } else {
+                        let newVal = dragStartRots[idx] + currentDeltaRot;
+                        while (newVal > 180) newVal -= 360;
+                        while (newVal < -180) newVal += 360;
+                        rotations[idx] = newVal;
+                    }
+                });
+            } else if (type === 'zoom') {
+                // 1.00-ás mágnes (Snap)
+                let snappedZoom = rawVal;
+                if (Math.abs(rawVal - 1.0) < 0.03) snappedZoom = 1.0;
+
+                // Kiszámoljuk a csúszka elmozdulását a kattintáskori értékéhez képest
+                let delta = snappedZoom - hudStartValues.zoom;
+                currentDeltaZoom = Math.round(delta * 100) / 100;
+
+                selectedIndices.forEach(idx => {
+                    if (idx === activeImageIndex) {
+                        // A fő kép közvetlenül a (snappelt) csúszka értékét kapja meg!
+                        zoomLevels[idx] = Math.round(snappedZoom * 100) / 100;
+                    } else {
+                        // A többi kép relatívan követi
+                        let newVal = dragStartZooms[idx] + delta;
+                        zoomLevels[idx] = Math.round(Math.max(0.1, Math.min(2.0, newVal)) * 100) / 100;
+                    }
+                });
+            }
+
+            renderCollage(false);
+            updateCanvasHUD();
+        }
+
+
+        function updateCanvasHUD() {
+            const hud = document.getElementById('canvas-info-hud');
+            const countLabel = document.getElementById('hud-selection-count');
+            if (!hud) return;
+
+            const totalSelected = selectedIndices.size;
+            if (activeImageIndex === -1 || totalSelected === 0) {
+                hud.style.display = 'none';
+                return;
+            }
+
+            hud.style.display = 'flex';
+            if (countLabel) countLabel.innerText = `${totalSelected} kép`;
+
+            // MÓDOSÍTÁS: Csak a csúszkát rejtjük el, a felirat (label) marad
+            const sliderGroups = hud.querySelectorAll('.hud-slider-group');
+            sliderGroups.forEach(group => {
+                const slider = group.querySelector('input[type="range"]');
+                if (slider) {
+                    slider.style.display = isAdvancedEditingEnabled ? 'none' : 'block';
+                }
+                // A csoport maga marad flex, hogy a label látszódjon
+                group.style.display = 'flex';
+            });
+
+            const zoomVal = document.getElementById('hud-zoom-val');
+            const rotVal = document.getElementById('hud-rot-val');
+
+            if (zoomVal) {
+                // Itt mindig a zoomLevels[activeImageIndex]-et mutatjuk, ami 
+                // az updateParamFromHUD-ban most már kényszerítve lett a csúszka értékére!
+                zoomVal.innerText = zoomLevels[activeImageIndex].toFixed(2) + "x";
+
+                // Ha több kép van kijelölve és épp húzzuk, színezzük el a számot visszajelzésként
+                zoomVal.style.color = (totalSelected > 1 && isHUDSliding && activeHUDParam === 'zoom') ? "var(--accent-color)" : "";
+            }
+
+            if (rotVal) {
+                rotVal.innerText = rotations[activeImageIndex] + "°";
+                rotVal.style.color = (totalSelected > 1 && isHUDSliding && activeHUDParam === 'rotate') ? "var(--accent-color)" : "";
+            }
+
+            if (!isHUDSliding && !isDraggingHandle) {
+                const zSlider = document.getElementById('hud-zoom-slider');
+                const rSlider = document.getElementById('hud-rotate-slider');
+                if (zSlider) zSlider.value = zoomLevels[activeImageIndex];
+                if (rSlider) rSlider.value = rotations[activeImageIndex];
+            }
+
+            if (window.lucide) lucide.createIcons();
+        }
+
+
+        // Módosított fogantyú rajzolás (csak ha a Haladó mód aktív)
+        function updateVisualSelection() {
+            const layer = document.getElementById('selection-layer');
+            const wrapper = document.getElementById('canvas-wrapper');
+            if (!layer || !wrapper || selectedIndices.size === 0) {
+                if (layer) layer.innerHTML = '';
+                return;
+            }
+
+            layer.innerHTML = '';
+            const scale = wrapper.clientWidth / 800;
+
+            selectedIndices.forEach(idx => {
+                const box = renderHitBoxes.find(b => b.index === idx);
+                if (!box) return;
+
+                const isPrimary = (idx === activeImageIndex);
+                const div = document.createElement('div');
+                div.className = `visual-selection-box ${isPrimary ? 'active' : 'multi'}`;
+
+                div.style.width = (box.w * scale) + 'px';
+                div.style.height = (box.h * scale) + 'px';
+                div.style.left = (box.cx * scale) + 'px';
+                div.style.top = (box.cy * scale) + 'px';
+                div.style.transform = `translate(-50%, -50%) rotate(${box.rotation}deg)`;
+
+                // --- CSAK HALADÓ MÓDBAN ADUNK HOZZÁ FOGANTYÚKAT ---
+                if (isPrimary && isAdvancedEditingEnabled) {
+                    ['top-left', 'top-right', 'bottom-left', 'bottom-right'].forEach(pos => {
+                        const h = document.createElement('div');
+                        h.className = 'visual-handle';
+                        if (pos.includes('top')) h.style.top = '-6px'; else h.style.bottom = '-6px';
+                        if (pos.includes('left')) h.style.left = '-6px'; else h.style.right = '-6px';
+                        div.appendChild(h);
+                    });
+
+                    const line = document.createElement('div');
+                    line.className = 'visual-rotator-line';
+                    line.style.height = (40 * scale) + 'px';
+                    const dot = document.createElement('div');
+                    dot.className = 'visual-rotator-dot';
+                    line.appendChild(dot);
+                    div.appendChild(line);
+                }
+                layer.appendChild(div);
+            });
+        }
+
+
+
+
+        function getHitFromCoords(mx, my) {
+            // Visszafelé haladunk a rétegeken (legfelső kép az első)
+            for (let i = renderHitBoxes.length - 1; i >= 0; i--) {
+                const box = renderHitBoxes[i];
+                if (mx >= box.x && mx <= box.x + box.w && my >= box.y && my <= box.y + box.h) {
+                    return { index: box.index };
+                }
+            }
+            return { index: -1 };
+        }
+
+
+
+        let dbSaveTimeout;
+        /* --- FRISSÍTETT RAJZOLÁS EXPORT FUNKCIÓVAL --- */
+        function renderCollage(shouldUpdateLink = true, isExport = false) {
+            const count = loadedImages.length;
+            //if (count === 0) return;
+
+            renderHitBoxes = [];
+            const CANVAS_SIZE = 800;
+            const canvas = document.getElementById('collageCanvas');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            canvas.width = CANVAS_SIZE;
+            canvas.height = CANVAS_SIZE;
+
+            // 1. Háttér
+            const bgWhite = document.querySelector('input[name="previewBg"][value="white"]').checked;
+            if (bgWhite) {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+            } else {
+                ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+            }
+
+            // 2. Képek rajzolása
+            if (currentMode === 'grid') renderGridMode(ctx, CANVAS_SIZE);
+            else renderFreeMode(ctx, CANVAS_SIZE);
+
+
+
+            // 5. Letöltési link frissítése - CSAK HA LÉTEZIK AZ ELEM
+            if (shouldUpdateLink && !isExport) {
+                const dlLink = document.getElementById('downloadLink');
+                if (dlLink) {
+                    dlLink.href = canvas.toDataURL("image/png");
+                }
+            }
+            updateVisualSelection();
+            updateGridSettings();
+            updateCanvasHUD();
+            if (!isExport && loadedImages.length > 0 && isSessionActive) { // --- MÓDOSÍTVA: + isSessionActive ---
+                clearTimeout(dbSaveTimeout);
+                dbSaveTimeout = setTimeout(() => {
+                    saveToPersistentStorage();
+                    console.log("Munkaterület elmentve.");
+                }, 1000);
+            }
+        }
+
+
+        function renderGridMode(ctx, CANVAS_SIZE) {
+            const count = loadedImages.length;
+            let rowCount = Math.round(Math.sqrt(count));
+            if (count === 2) {
+                const layoutInputs = document.querySelectorAll('input[name="layout"]');
+                let layout = 'horizontal';
+                layoutInputs.forEach(input => { if (input.checked) layout = input.value; });
+                rowCount = (layout === 'horizontal') ? 1 : 2;
+            }
+
+            const distribution = distributeImages(count, rowCount);
+            const rowHeight = CANVAS_SIZE / rowCount;
+
+            // Először kiszámoljuk az összes kép adatait egy ideiglenes listába
+            let tempItems = [];
+            let imgIdx = 0;
+            for (let r = 0; r < rowCount; r++) {
+                const imagesInThisRow = distribution[r];
+                const colWidth = CANVAS_SIZE / imagesInThisRow;
+                for (let c = 0; c < imagesInThisRow; c++) {
+                    tempItems.push({
+                        img: loadedImages[imgIdx],
+                        idx: imgIdx,
+                        cellX: c * colWidth,
+                        cellY: r * rowHeight,
+                        colWidth: colWidth,
+                        rowHeight: rowHeight
+                    });
+                    imgIdx++;
+                }
+            }
+
+            // Most kirajzoljuk őket FORDÍTOTT sorrendben (utolsótól az elsőig)
+            // Így az 1. kép (0. index) marad a helyén, de ha takarás van, ő lesz felül.
+            for (let i = tempItems.length - 1; i >= 0; i--) {
+                const item = tempItems[i];
+                const img = item.img;
+                const index = item.idx;
+                const zoom = zoomLevels[index];
+                const offset = imageOffsets[index];
+                const rotation = rotations[index];
+
+                const centerX = item.cellX + (item.colWidth / 2) + offset.x;
+                const centerY = item.cellY + (item.rowHeight / 2) + offset.y;
+
+                const hRatio = item.colWidth / img.width;
+                const vRatio = item.rowHeight / img.height;
+                let ratio = Math.min(hRatio, vRatio) * zoom;
+                const newWidth = img.width * ratio;
+                const newHeight = img.height * ratio;
+
+                renderHitBoxes.push({
+                    index: index,
+                    x: centerX - newWidth / 2, y: centerY - newHeight / 2,
+                    w: newWidth, h: newHeight,
+                    cx: centerX, cy: centerY, rotation: rotation
+                });
+
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(rotation * Math.PI / 180);
+                ctx.drawImage(img, -newWidth / 2, -newHeight / 2, newWidth, newHeight);
+                ctx.restore();
+            }
+        }
+
+        function renderFreeMode(ctx, CANVAS_SIZE) {
+            const centerCanvasX = CANVAS_SIZE / 2;
+            const centerCanvasY = CANVAS_SIZE / 2;
+
+            // Megfordítjuk a sorrendet: a tömb végétől haladunk az eleje felé.
+            // Így a 0. indexű kép kerül utoljára a vászonra (legfelülre).
+            for (let i = loadedImages.length - 1; i >= 0; i--) {
+                const img = loadedImages[i];
+                const index = i;
+
+                const zoom = zoomLevels[index];
+                const offset = imageOffsets[index];
+                const rotation = rotations[index];
+
+                const baseScale = Math.min(CANVAS_SIZE / img.width, CANVAS_SIZE / img.height) * 0.5;
+                const finalScale = baseScale * zoom;
+                const newWidth = img.width * finalScale;
+                const newHeight = img.height * finalScale;
+                const centerX = centerCanvasX + offset.x;
+                const centerY = centerCanvasY + offset.y;
+
+                renderHitBoxes.push({
+                    index: index,
+                    x: centerX - newWidth / 2, y: centerY - newHeight / 2,
+                    w: newWidth, h: newHeight,
+                    cx: centerX, cy: centerY, rotation: rotation
+                });
+
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(rotation * Math.PI / 180);
+                ctx.drawImage(img, -newWidth / 2, -newHeight / 2, newWidth, newHeight);
+                ctx.restore();
+            }
+        }
+
+        function distributeImages(totalItems, rows) {
+            const result = new Array(rows).fill(0);
+            let remaining = totalItems;
+            const base = Math.floor(totalItems / rows);
+            result.fill(base);
+            remaining -= base * rows;
+            let i = 0;
+            while (remaining > 0) { result[i]++; remaining--; i++; if (i >= rows) i = 0; }
+            return result.reverse();
+        }
+
+
+        function getHandleAtMouse(mx, my, box) {
+            if (!box) return null;
+
+            // Visszaforgatjuk az egér koordinátáit a kép saját rendszerébe
+            const dx = mx - box.cx;
+            const dy = my - box.cy;
+            const rad = -box.rotation * Math.PI / 180;
+            const rx = dx * Math.cos(rad) - dy * Math.sin(rad);
+            const ry = dx * Math.sin(rad) + dy * Math.cos(rad);
+
+            const halfW = box.w / 2;
+            const halfH = box.h / 2;
+
+            // A függvényen belül a forgató rész:
+            const handleOffsetCanvas = 40; // Ugyanaz, mint fent!
+            const rotDist = Math.sqrt(rx * rx + (ry + halfH + handleOffsetCanvas) ** 2);
+            if (rotDist < 20) return 'rot'; // 20 egységnyi "érzékenységi zóna" a kör körül
+            // Ellenőrizzük a sarkokat
+            if (Math.abs(rx - (-halfW)) < 10 && Math.abs(ry - (-halfH)) < 10) return 'tl';
+            if (Math.abs(rx - halfW) < 10 && Math.abs(ry - (-halfH)) < 10) return 'tr';
+            if (Math.abs(rx - (-halfW)) < 10 && Math.abs(ry - halfH) < 10) return 'bl';
+            if (Math.abs(rx - halfW) < 10 && Math.abs(ry - halfH) < 10) return 'br';
+
+            return null;
+
+
+
+        }
+
+
+
+        function setupCanvasInteractions() {
+            const canvas = document.getElementById('collageCanvas');
+            const workspace = document.querySelector('.main-workspace'); // A teljes munkaterület
+
+            if (!workspace || !canvas) return;
+
+            // A kattintást a teljes munkaterületen figyeljük
+            workspace.onmousedown = (e) => {
+                // Ha gombra vagy inputra kattintunk, ne zavarjuk az alapműködést
+
+                if (e.target.closest('.modern-hud')) {
+                    return;
+                }
+
+                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+
+                // --- EZT A SORT ADD HOZZÁ AZ ELEJÉRE ---
+                hasPushedStateForCurrentAction = false;
+                // ---------------------------------------
+
+                const rect = canvas.getBoundingClientRect();
+                const mx = (e.clientX - rect.left) * (800 / rect.width);
+                const my = (e.clientY - rect.top) * (800 / rect.height);
+
+                // A. Fogantyú kezelése (BÁRHOL a képernyőn)
+                if (activeImageIndex !== -1 && isAdvancedEditingEnabled) { // Beépítve az isAdvancedEditingEnabled feltétel
+                    const box = renderHitBoxes.find(b => b.index === activeImageIndex);
+                    const handle = getHandleAtMouse(mx, my, box);
+
+                    if (handle) {
+                        isDraggingHandle = handle;
+                        const dx = mx - box.cx;
+                        const dy = my - box.cy;
+                        dragStartDist = Math.sqrt(dx * dx + dy * dy);
+                        dragStartAngle = Math.atan2(dy, dx);
+                        dragStartZooms = [...zoomLevels];
+                        dragStartRots = [...rotations];
+
+                        window.addEventListener('mousemove', globalMouseMove);
+                        window.addEventListener('mouseup', globalMouseUp);
+                        return;
+                    }
+                }
+
+                // B. Kép kijelölés/mozgatás hit-teszt
+                const { index } = getHitFromCoords(mx, my);
+
+                if (index !== -1) {
+                    if (e.shiftKey) {
+                        if (selectedIndices.has(index)) selectedIndices.delete(index);
+                        else selectedIndices.add(index);
+                    } else {
+                        if (!selectedIndices.has(index)) {
+                            selectedIndices.clear();
+                            selectedIndices.add(index);
+                        }
+                    }
+                    activeImageIndex = index;
+
+                    // Mozgatás indítása
+                    isDraggingCanvas = true;
+                    dragStartMouseX = mx;
+                    dragStartMouseY = my;
+                    dragStartOffsets = loadedImages.map((_, i) => ({
+                        x: imageOffsets[i].x,
+                        y: imageOffsets[i].y
+                    }));
+
+                    // --- EZT A KÉT SORT ADD HOZZÁ ---
+                    const box = renderHitBoxes.find(b => b.index === index);
+                    if (box) {
+                        dragStartBoxCX = box.cx;
+                        dragStartBoxCY = box.cy;
+                    }
+                    // ----
+
+                    window.addEventListener('mousemove', globalMouseMove);
+                    window.addEventListener('mouseup', globalMouseUp);
+                }
+
+                renderCollage();
+                updateUIControls();
+            };
+
+            // Kurzorkezelés
+            workspace.onmousemove = (e) => {
+                if (isDraggingCanvas || isDraggingHandle) return;
+                const rect = canvas.getBoundingClientRect();
+                const mx = (e.clientX - rect.left) * (800 / rect.width);
+                const my = (e.clientY - rect.top) * (800 / rect.height);
+
+                const { index } = getHitFromCoords(mx, my);
+                const box = renderHitBoxes.find(b => b.index === activeImageIndex);
+                const handle = getHandleAtMouse(mx, my, box);
+
+                if (handle) {
+                    workspace.style.cursor = (handle === 'rot') ? 'crosshair' : 'nwse-resize';
+                } else if (index !== -1) {
+                    workspace.style.cursor = selectedIndices.has(index) ? 'grab' : 'pointer';
+                } else {
+                    workspace.style.cursor = 'default';
+                }
+            };
+        }
+
+
+
+
+        // Segédfüggvény a találatokhoz
+        function getHitFromCoords(mx, my) {
+            for (let i = renderHitBoxes.length - 1; i >= 0; i--) {
+                const box = renderHitBoxes[i];
+                if (mx >= box.x && mx <= box.x + box.w && my >= box.y && my <= box.y + box.h) {
+                    return { index: box.index };
+                }
+            }
+            return { index: -1 };
+        }
+
+
+        function globalMouseMove(e) {
+            if (!isDraggingCanvas && !isDraggingHandle) return;
+
+            if (!hasPushedStateForCurrentAction) {
+                pushState();
+                hasPushedStateForCurrentAction = true;
+            }
+
+            const canvas = document.getElementById('collageCanvas');
+            const rect = canvas.getBoundingClientRect();
+            const mx = (e.clientX - rect.left) * (800 / rect.width);
+            const my = (e.clientY - rect.top) * (800 / rect.height);
+
+            if (isDraggingHandle && activeImageIndex !== -1) {
+                // ... (A transzformációs kód - forgatás/méretezés - maradjon változatlan) ...
+                const box = renderHitBoxes.find(b => b.index === activeImageIndex);
+                const dx = mx - box.cx;
+                const dy = my - box.cy;
+
+                if (isDraggingHandle === 'rot') {
+                    const currentMouseAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+                    let angleDiff = currentMouseAngle - (dragStartAngle * (180 / Math.PI));
+                    if (angleDiff > 180) angleDiff -= 360;
+                    if (angleDiff < -180) angleDiff += 360;
+
+                    let targetRot = dragStartRots[activeImageIndex] + angleDiff;
+                    const snapPoints = [-180, -135, -90, -45, 0, 45, 90, 135, 180];
+                    for (let p of snapPoints) {
+                        if (Math.abs(targetRot - p) < 6) { targetRot = p; break; }
+                    }
+                    currentDeltaRot = Math.round(targetRot - dragStartRots[activeImageIndex]);
+                    selectedIndices.forEach(idx => rotations[idx] = Math.round(dragStartRots[idx] + currentDeltaRot));
+                } else {
+                    const currentDist = Math.sqrt(dx * dx + dy * dy);
+                    const ratio = currentDist / dragStartDist;
+                    currentDeltaZoom = ratio - 1;
+                    selectedIndices.forEach(idx => zoomLevels[idx] = Math.max(0.1, dragStartZooms[idx] * ratio));
+                }
+            }
+            else if (isDraggingCanvas) {
+                const totalMouseDeltaX = mx - dragStartMouseX;
+                const totalMouseDeltaY = my - dragStartMouseY;
+
+                activeSnapLines = { x: null, y: null };
+                let snapCorrectionX = 0;
+                let snapCorrectionY = 0;
+
+                if (isSnapEnabled && activeImageIndex !== -1) {
+                    const refIdx = activeImageIndex;
+                    const box = renderHitBoxes.find(b => b.index === refIdx);
+
+                    if (box) {
+                        // A "nyers" virtuális pozíció (mágnes nélkül)
+                        const virtualCX = dragStartBoxCX + totalMouseDeltaX;
+                        const virtualCY = dragStartBoxCY + totalMouseDeltaY;
+
+                        const vL = virtualCX - box.w / 2;
+                        const vR = virtualCX + box.w / 2;
+                        const vT = virtualCY - box.h / 2;
+                        const vB = virtualCY + box.h / 2;
+
+                        const targetsX = [0, 400, 800];
+                        const targetsY = [0, 400, 800];
+
+                        renderHitBoxes.forEach(other => {
+                            if (!selectedIndices.has(other.index)) {
+                                targetsX.push(other.cx, other.cx - other.w / 2, other.cx + other.w / 2);
+                                targetsY.push(other.cy, other.cy - other.h / 2, other.cy + other.h / 2);
+                            }
+                        });
+
+                        // X irányú mágnes (Vízszintes illesztés javítva)
+                        for (let tx of targetsX) {
+                            if (Math.abs(vL - tx) < SNAP_THRESHOLD) { snapCorrectionX = tx - vL; activeSnapLines.x = tx; break; }
+                            if (Math.abs(vR - tx) < SNAP_THRESHOLD) { snapCorrectionX = tx - vR; activeSnapLines.x = tx; break; }
+                            if (Math.abs(virtualCX - tx) < SNAP_THRESHOLD) { snapCorrectionX = tx - virtualCX; activeSnapLines.x = tx; break; }
+                        }
+
+                        // Y irányú mágnes (Függőleges illesztés)
+                        for (let ty of targetsY) {
+                            if (Math.abs(vT - ty) < SNAP_THRESHOLD) { snapCorrectionY = ty - vT; activeSnapLines.y = ty; break; }
+                            if (Math.abs(vB - ty) < SNAP_THRESHOLD) { snapCorrectionY = ty - vB; activeSnapLines.y = ty; break; }
+                            if (Math.abs(virtualCY - ty) < SNAP_THRESHOLD) { snapCorrectionY = ty - virtualCY; activeSnapLines.y = ty; break; }
+                        }
+                    }
+                }
+
+                selectedIndices.forEach(idx => {
+                    imageOffsets[idx].x = dragStartOffsets[idx].x + totalMouseDeltaX + snapCorrectionX;
+                    imageOffsets[idx].y = dragStartOffsets[idx].y + totalMouseDeltaY + snapCorrectionY;
+                });
+            }
+
+            updateCanvasHUD();
+            renderCollage(false);
+        }
+
+
+
+        function globalMouseUp() {
+            isDraggingCanvas = false;
+            isDraggingHandle = null;
+            activeHUDParam = null;
+
+            // --- EZT ADD HOZZÁ ---
+            hasPushedStateForCurrentAction = false;
+            // ---------------------
+
+            // INTELIGENS ILLESZTÉS TÖRLÉSE ELENGEDÉSKOR
+            activeSnapLines = { x: null, y: null };
+            updateGridSettings(); // Ez törli le a piros vonalakat a grid-overlay canvas-ről
+
+            window.removeEventListener('mousemove', globalMouseMove);
+            window.removeEventListener('mouseup', globalMouseUp);
+
+            updateCanvasHUD();
+            renderCollage(true);
+            saveToPersistentStorage();
+        }
+
+        /* --- BILLENTYŰZET VEZÉRLÉS EGYSÉGESÍTVE ÉS JAVÍTVA --- */
+        document.addEventListener('keyup', (e) => {
+            // Amikor elengedi bármelyik mozgató billentyűt, lezárjuk a folyamatot
+            const moveKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+            if (moveKeys.includes(e.key)) {
+                isKeyMovingSession = false;
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            // Ha nincs kijelölés vagy épp szöveget ír be a felhasználó, ne csináljon semmit
+            if (selectedIndices.size === 0) return;
+            if (e.target.tagName === 'INPUT') return;
+
+            const moveKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+
+            if (moveKeys.includes(e.key)) {
+                // --- KRITIKUS JAVÍTÁS: Csak az első gombnyomáskor mentünk állapotot ---
+                if (!isKeyMovingSession) {
+                    pushState();
+                    isKeyMovingSession = true;
+                }
+
+                const step = e.shiftKey ? 20 : 2;
+                let moved = false;
+
+                switch (e.key) {
+                    case 'ArrowUp':
+                        selectedIndices.forEach(idx => imageOffsets[idx].y -= step);
+                        moved = true;
+                        break;
+                    case 'ArrowDown':
+                        selectedIndices.forEach(idx => imageOffsets[idx].y += step);
+                        moved = true;
+                        break;
+                    case 'ArrowLeft':
+                        selectedIndices.forEach(idx => imageOffsets[idx].x -= step);
+                        moved = true;
+                        break;
+                    case 'ArrowRight':
+                        selectedIndices.forEach(idx => imageOffsets[idx].x += step);
+                        moved = true;
+                        break;
+                }
+
+                if (moved) {
+                    e.preventDefault();
+                    renderCollage();
+                }
+            } else if (e.key === 'Escape') {
+                deselectImage();
+                e.preventDefault();
+            } else if (e.key === 'Delete' || e.key === 'Backspace') {
+                deleteSelectedImages();
+                e.preventDefault();
+            }
+        });
+
+
+
+
+        function getHitFromMouse(e) {
+            const canvas = document.getElementById('collageCanvas');
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const mouseX = (e.clientX - rect.left) * scaleX;
+            const mouseY = (e.clientY - rect.top) * scaleY;
+
+            for (let i = renderHitBoxes.length - 1; i >= 0; i--) {
+                const box = renderHitBoxes[i];
+                if (mouseX >= box.x && mouseX <= box.x + box.w && mouseY >= box.y && mouseY <= box.y + box.h) {
+                    return { index: box.index };
+                }
+            }
+            return { index: -1 };
+        }
+
+
+        function selectImageFromSidebar(index, event) {
+            // MÓDOSÍTÁS: Itt is csak a SHIFT-et vizsgáljuk
+            const isMulti = event ? event.shiftKey : false;
+
+            if (isMulti) {
+                if (selectedIndices.has(index)) selectedIndices.delete(index);
+                else selectedIndices.add(index);
+
+                if (selectedIndices.has(index)) activeImageIndex = index;
+            } else {
+                selectedIndices.clear();
+                selectedIndices.add(index);
+                activeImageIndex = index;
+            }
+
+            activeImageIndex = index;
+
+            updateUIControls(true);
+            renderCollage();
+            updateCanvasHUD();
+        }
+
+
+        function removeImage(index) {
+            pushState();
+
+            // 1. Adatok törlése a tömbökből
+            loadedImages.splice(index, 1);
+            originalImages.splice(index, 1);
+            zoomLevels.splice(index, 1);
+            imageOffsets.splice(index, 1);
+            rotations.splice(index, 1);
+
+            // 2. Új kijelölési lista építése az index-eltolódásokkal
+            const newSelected = new Set();
+            selectedIndices.forEach(idx => {
+                if (idx < index) {
+                    newSelected.add(idx);
+                } else if (idx > index) {
+                    newSelected.add(idx - 1);
+                }
+            });
+
+            // 3. AZ UGRÓ LOGIKA:
+            if (activeImageIndex === index) {
+                // Ha az elsődlegest töröltük, válasszuk ki az új listából az első elérhetőt
+                if (newSelected.size > 0) {
+                    // A Set-ből kinyerjük az első elemet
+                    activeImageIndex = newSelected.values().next().value;
+                } else {
+                    activeImageIndex = -1;
+                }
+            } else if (activeImageIndex > index) {
+                // Ha nem az elsődlegest töröltük, de utána volt a sorban, korrigáljuk az indexét
+                activeImageIndex--;
+            }
+
+            // Frissítjük a globális listát
+            selectedIndices = newSelected;
+
+
+            updateUIControls();
+            renderCollage();
+            showToast("Kép eltávolítva", "trash-2", "#ff9f43");
+        }
+
+        // Toolbar törlés gombja
+        function removeActiveImageFromToolbar() {
+            deleteSelectedImages();
+        }
+        function deselectImage() {
+            selectedIndices.clear();
+            activeImageIndex = -1;
+            updateCanvasHUD(); // Ez fogja elrejteni a HUD-ot a fenti check miatt
+            renderCollage();
+            updateUIControls();
+        }
+
+        // Csoportos törlés (FONTOS: hátulról előre kell törölni az indexek elcsúszása miatt!)
+        function deleteSelectedImages() {
+            const count = selectedIndices.size;
+            // Átalakítjuk tömbbé, és csökkenő sorrendbe rendezzük
+            const indicesToDelete = Array.from(selectedIndices).sort((a, b) => b - a);
+
+            indicesToDelete.forEach(index => {
+                loadedImages.splice(index, 1);
+                originalImages.splice(index, 1);
+                zoomLevels.splice(index, 1);
+                imageOffsets.splice(index, 1);
+                rotations.splice(index, 1);
+            });
+
+            selectedIndices.clear();
+            activeImageIndex = -1;
+
+            // ÚJ LOGIKA:
+            selectedIndices.clear();
+            activeImageIndex = -1;
+            updateUIControls();
+            renderCollage();
+            showToast(`${count} kép eltávolítva`, "trash-2", "#ff9f43");
+        }
+
+
+        function shuffleImages() {
+            if (loadedImages.length < 2) return;
+            const canvas = document.getElementById('collageCanvas');
+
+            // Előbb mentünk az előzményekbe
+            pushState();
+
+            // Animáció osztály hozzáadása
+            canvas.classList.remove('shuffle-anim'); // Előző törlése
+            void canvas.offsetWidth; // "Reflow" kényszerítése az animáció újraindításához
+            canvas.classList.add('shuffle-anim');
+
+            // Keverés logikája (maradhat a régi)
+            for (let i = loadedImages.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [loadedImages[i], loadedImages[j]] = [loadedImages[j], loadedImages[i]];
+                [originalImages[i], originalImages[j]] = [originalImages[j], originalImages[i]];
+                [zoomLevels[i], zoomLevels[j]] = [zoomLevels[j], zoomLevels[i]];
+                [imageOffsets[i], imageOffsets[j]] = [imageOffsets[j], imageOffsets[i]];
+                [rotations[i], rotations[j]] = [rotations[j], rotations[i]];
+            }
+
+            selectedIndices.clear();
+            activeImageIndex = -1;
+
+            updateUIControls();
+            renderCollage();
+        }
+
+
+
+        /* --- JAVÍTOTT TOOLBAR LOGIKA (SNAP + DUPLA KLIKK) --- */
+        function updateFloatingToolbar() {
+            const toolbar = document.getElementById('floating-toolbar');
+            if (!toolbar) return;
+
+            if (activeImageIndex === -1) {
+                toolbar.style.display = 'none';
+                return;
+            }
+
+            toolbar.style.display = 'flex';
+            const inputs = {
+                zoomSlider: document.getElementById('ft-zoom'),
+                zoomInput: document.getElementById('ft-zoom-input'),
+                rotateSlider: document.getElementById('ft-rotate'),
+                rotateInput: document.getElementById('ft-rotate-input')
+            };
+
+            if (!inputs.zoomSlider || !inputs.zoomInput) return;
+
+            // ZOOM BEÁLLÍTÁSOK (Max 2.0)
+            inputs.zoomSlider.max = "2.0";
+
+
+
+            const currentZoom = zoomLevels[activeImageIndex];
+            const currentRotate = rotations[activeImageIndex];
+
+            if (document.activeElement !== inputs.zoomInput) {
+                inputs.zoomSlider.value = currentZoom;
+                inputs.zoomInput.value = currentZoom.toFixed(2);
+            }
+            if (document.activeElement !== inputs.rotateInput) {
+                inputs.rotateSlider.value = currentRotate;
+                inputs.rotateInput.value = currentRotate;
+            }
+
+            // --- DUPLA KLIKK RESET ---
+            inputs.zoomSlider.ondblclick = () => {
+                zoomLevels[activeImageIndex] = 1.0;
+                inputs.zoomSlider.value = 1.0;
+                inputs.zoomInput.value = "1.00";
+                // Szinkronizálás a sidebarral is
+                updateUIControls(true);
+                renderCollage();
+            };
+
+            inputs.rotateSlider.ondblclick = () => {
+                rotations[activeImageIndex] = 0;
+                inputs.rotateSlider.value = 0;
+                inputs.rotateInput.value = 0;
+                // Szinkronizálás a sidebarral is
+                updateUIControls(true);
+                renderCollage();
+            };
+
+            // ZOOM INPUT
+            inputs.zoomSlider.oninput = (e) => {
+                zoomLevels[activeImageIndex] = parseFloat(e.target.value);
+                inputs.zoomInput.value = zoomLevels[activeImageIndex].toFixed(2);
+                renderCollage();
+            };
+
+            // FORGATÁS SNAP LOGIKA (Marad a régi)
+            // ... (a függvény eleje változatlan marad) ...
+
+            // FORGATÁS SNAP LOGIKA (JAVÍTOTT)
+            inputs.rotateSlider.oninput = (e) => {
+                let val = parseInt(e.target.value);
+                const snapPoints = [-180, -90, 0, 90, 180];
+
+                // JAVÍTÁS: Itt is 4 fokra vettük a 10 helyett
+                const threshold = 4;
+
+                for (let p of snapPoints) {
+                    if (Math.abs(val - p) <= threshold) {
+                        val = p;
+                        break;
+                    }
+                }
+
+                // Vizuális korrekció a csúszkán, ha behúzta a mágnes
+                if (val !== parseInt(e.target.value)) {
+                    e.target.value = val;
+                }
+
+                rotations[activeImageIndex] = val;
+                inputs.rotateInput.value = rotations[activeImageIndex];
+                renderCollage();
+            };
+        } // Függvény vége
+
+
+        function toggleView(view) {
+            const startScreen = document.getElementById('start-screen');
+            const editorElements = document.querySelectorAll('.editor-ui');
+
+            if (view === 'start') {
+                startScreen.classList.remove('d-none');
+                editorElements.forEach(el => el.classList.add('d-none'));
+
+                // Alapértelmezetten a feltöltés látszódjon, ha a start-ra megyünk
+                document.getElementById('upload-step').classList.remove('d-none');
+                document.getElementById('mode-selection-step').classList.add('d-none');
+            } else {
+                startScreen.classList.add('d-none');
+                editorElements.forEach(el => el.classList.remove('d-none'));
+                setTimeout(snapCanvasSizeToGrid, 50);
+            }
+        }
+
+        function updateGridSettings() {
+            const overlayCanvas = document.getElementById('grid-overlay');
+            const wrapper = document.getElementById('canvas-wrapper');
+            const toggle = document.getElementById('gridToggle');
+
+            if (!overlayCanvas || !wrapper || !toggle) return;
+            if (wrapper.clientWidth === 0 || wrapper.clientHeight === 0) return;
+
+            const isEnabled = toggle.checked;
+            const tilesPerBlock = 4;
+            const TILE_SIZE = 20;
+
+            overlayCanvas.width = wrapper.clientWidth;
+            overlayCanvas.height = wrapper.clientHeight;
+
+            const ctx = overlayCanvas.getContext('2d');
+            ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+            // --- 1. ALAPRÁCS RAJZOLÁSA (ha be van kapcsolva) ---
+            if (isEnabled) {
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)'; // Halványabb rács
+                ctx.lineWidth = 1;
+                const gridIntervalPx = tilesPerBlock * TILE_SIZE;
+
+                ctx.beginPath();
+                for (let x = gridIntervalPx; x < overlayCanvas.width; x += gridIntervalPx) {
+                    const sharpX = Math.round(x) + 0.5;
+                    ctx.moveTo(sharpX, 0); ctx.lineTo(sharpX, overlayCanvas.height);
+                }
+                for (let y = gridIntervalPx; y < overlayCanvas.height; y += gridIntervalPx) {
+                    const sharpY = Math.round(y) + 0.5;
+                    ctx.moveTo(0, sharpY); ctx.lineTo(overlayCanvas.width, sharpY);
+                }
+                ctx.stroke();
+            }
+
+            // --- 2. INTELLIGENS ILLESZTÉS VONALAI (Piros vonalak) ---
+            // Akkor is rajzoljuk, ha a rács ki van kapcsolva, de a snapping aktív!
+            if (isSnapEnabled && (activeSnapLines.x !== null || activeSnapLines.y !== null)) {
+                const scale = overlayCanvas.width / 800; // Belső 800-as koordináta átszámítása pixelre
+
+                ctx.save();
+                ctx.strokeStyle = '#ff4d4f'; // Piros szín
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([6, 4]); // Szaggatott vonal
+
+                if (activeSnapLines.x !== null) {
+                    const drawX = Math.round(activeSnapLines.x * scale) + 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(drawX, 0);
+                    ctx.lineTo(drawX, overlayCanvas.height);
+                    ctx.stroke();
+                }
+
+                if (activeSnapLines.y !== null) {
+                    const drawY = Math.round(activeSnapLines.y * scale) + 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(0, drawY);
+                    ctx.lineTo(overlayCanvas.width, drawY);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+        }
+
+
+        function updatePreviewBg() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            const radio = document.querySelector('input[name="previewBg"]:checked');
+            if (!radio) return;
+
+            const mode = radio.value;
+
+            // MENTÉS: elmentjük a választott háttér típusát
+            localStorage.setItem('collage_preview_bg', mode);
+
+            if (mode === 'white') {
+                wrapper.classList.remove('bg-checkerboard');
+                wrapper.classList.add('bg-white');
+            } else {
+                wrapper.classList.remove('bg-white');
+                wrapper.classList.add('bg-checkerboard');
+            }
+
+            updateGridSettings();
+            renderCollage();
+        }
+
+
+        /* --- STEPPER LOGIKA (Stabil, 80-as osztókra optimalizálva) --- */
+        // Csak olyan számok, amikkel szépen osztható a 80-as alapú vászon
+        const GRID_VALUES = [2, 4, 5, 8, 10, 16];
+
+        function stepGrid(direction) {
+            const hiddenInput = document.getElementById('gridSizeSlider');
+            const display = document.getElementById('stepperDisplay');
+            const wrapper = document.getElementById('canvas-wrapper');
+
+            let currentVal = parseInt(hiddenInput.value);
+            let idx = GRID_VALUES.indexOf(currentVal);
+
+            if (idx === -1) idx = 1; // Alapból a 4-es
+
+            // Irány: + Sűrít (balra), - Ritkít (jobbra)
+            let newIdx = idx - direction;
+
+            // Határok
+            if (newIdx < 0) newIdx = 0;
+            if (newIdx >= GRID_VALUES.length) newIdx = GRID_VALUES.length - 1;
+
+            // --- OKOS ELLENŐRZÉS ---
+            // Mielőtt kiválasztjuk, megnézzük, hogy a jelenlegi vászonhoz tényleg jó-e.
+            // Ha véletlenül nem jön ki matek (pl. nagyon kicsi ablaknál), átugorjuk.
+            // De a 80-as snap miatt 99%-ban jó lesz.
+            let newVal = GRID_VALUES[newIdx];
+
+            // Érték mentése és kiírás
+            hiddenInput.value = newVal;
+            display.innerText = newVal + ' egység';
+
+            // ITT A TITOK: A vásznat NEM méretezzük át! Csak a rácsot rajzoljuk újra.
+            updateGridSettings();
+        }
+
+
+
+
+        // A régi updateGridButtonsUI függvényt cseréld le erre:
+        function updateGridButtonsUI() {
+            const sliderInput = document.getElementById('gridSizeSlider');
+            const display = document.getElementById('stepperDisplay');
+            if (sliderInput && display) {
+                display.innerText = sliderInput.value + 'x';
+            }
+        }
+
+
+
+        function toggleSnapping() {
+            isSnapEnabled = document.getElementById('snapToggle').checked;
+            // Opcionálisan elmenthetjük localStorage-ba is
+            localStorage.setItem('collage_snap_enabled', isSnapEnabled);
+        }
+
+
+        function toggleGrid() {
+            const toggle = document.getElementById('gridToggle');
+            isGridVisible = toggle.checked;
+            localStorage.setItem('collage_grid_enabled', isGridVisible);
+
+            // A méret fix, nem kell újraszámolni, csak a vonalakat kapcsoljuk ki/be
+            updateGridSettings();
+        }
+
+
+        function snapCanvasSizeToGrid() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            const container = document.querySelector('.canvas-column');
+            const appContainer = document.getElementById('app-container');
+            const mobileWarning = document.getElementById('mobile-warning');
+
+            const FIX_GRID_UNIT = 80;
+            const MIN_WORKABLE_SIZE = 320;
+
+            // Ha nincs container (pl. még nem töltött be), ne fussunk tovább
+            if (!container || !appContainer) return;
+
+            // Ha az appContainer display: none, akkor ideiglenesen tegyük láthatóvá a méréshez
+            const originalDisplay = appContainer.style.display;
+            if (originalDisplay === 'none') {
+                appContainer.style.display = 'grid';
+            }
+
+            const containerRect = container.getBoundingClientRect();
+            const availableWidth = containerRect.width;
+            // Ha a magasság 0 (mert rejtve van), használjuk az ablak magasságát viszonyításnak
+            const availableHeight = (containerRect.height > 0 ? containerRect.height : window.innerHeight - 150) - 80;
+
+            let baseSize = Math.min(availableWidth, availableHeight);
+            let snappedSize = Math.floor(baseSize / FIX_GRID_UNIT) * FIX_GRID_UNIT;
+
+            // Visszaállítjuk az eredeti állapotot a mérés után
+            appContainer.style.display = originalDisplay;
+
+            // KRITIKUS JAVÍTÁS: Csak akkor blokkoljunk, ha tényleg kicsi a képernyő (window.innerWidth)
+            // Ne a kiszámolt snappedSize-ra alapozzuk a teljes tiltást!
+            if (window.innerWidth < 1024 || window.innerHeight < 500) {
+                appContainer.style.display = 'none';
+                mobileWarning.style.display = 'flex';
+                return;
+            } else {
+                // Ha desktopon vagyunk, az app legyen látható
+                appContainer.style.display = 'grid';
+                mobileWarning.style.display = 'none';
+            }
+
+            if (wrapper) {
+                wrapper.style.width = snappedSize + 'px';
+                wrapper.style.height = snappedSize + 'px';
+            }
+
+            updateGridSettings();
+            renderCollage(false);
+            updateVisualSelection();
+        }
+
+
+        function resetImageParams(index) {
+            // --- ÚJ: Mentés, mielőtt visszaállítjuk ---
+            pushState();
+            // Visszaállítjuk az alapértelmezett értékeket
+            zoomLevels[index] = (currentMode === 'free' ? 0.8 : 1.0);
+            rotations[index] = 0;
+            imageOffsets[index] = { x: 0, y: 0 };
+
+            // Frissítjük a nézetet
+            renderCollage();
+            updateUIControls();
+        }
+
+        function downloadImage(event) {
+            if (event) event.preventDefault();
+
+            renderCollage(false, true);
+
+            const canvas = document.getElementById('collageCanvas');
+            const dataURL = canvas.toDataURL("image/png");
+
+            const now = new Date();
+            const dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+            const timeStr = String(now.getHours()).padStart(2, '0') + '-' + String(now.getMinutes()).padStart(2, '0');
+
+            const tempLink = document.createElement('a');
+            tempLink.download = `termek_kollazs_${dateStr}_${timeStr}.png`;
+            tempLink.href = dataURL;
+            document.body.appendChild(tempLink);
+            tempLink.click();
+            document.body.removeChild(tempLink);
+
+            renderCollage(true, false);
+
+            // --- ÚJ: Visszajelzés küldése a felhasználónak ---
+            showToast("Kép sikeresen mentve a számítógépre!");
+        }
+
+        // Csoportos alaphelyzetbe állítás
+        function batchResetSelected() {
+            if (selectedIndices.size < 2) return;
+
+            selectedIndices.forEach(idx => {
+                zoomLevels[idx] = (currentMode === 'free' ? 0.8 : 1.0);
+                rotations[idx] = 0;
+                imageOffsets[idx] = { x: 0, y: 0 };
+            });
+
+            renderCollage();
+            updateUIControls();
+        }
+
+        // Csoportos törlés (átnevezve/tisztázva)
+        function batchDeleteSelected() {
+            if (selectedIndices.size < 2) return;
+            if (confirm(`Biztosan törölni szeretnéd a kijelölt ${selectedIndices.size} képet?`)) {
+                deleteSelectedImages(); // Ezt a függvényt már korábban megírtuk
+            }
+        }
+
+
+
+        function updateScrollFades() {
+            const container = document.getElementById('sliders-container');
+            const area = document.getElementById('sliders-area');
+            if (!container || !area) return;
+
+            const scrollTop = container.scrollTop;
+            const scrollHeight = container.scrollHeight;
+            const clientHeight = container.clientHeight;
+
+            // Ha a tartalom kisebb, mint a konténer, egyik fade sem kell
+            if (scrollHeight <= clientHeight) {
+                area.classList.remove('show-top-fade', 'show-bottom-fade');
+                return;
+            }
+
+            // Felső fade: ha nem a legtetején vagyunk
+            if (scrollTop > 5) {
+                area.classList.add('show-top-fade');
+            } else {
+                area.classList.remove('show-top-fade');
+            }
+
+            // Alsó fade: ha nem értük el az alját (hagyunk 5px hibahatárt)
+            if (scrollTop + clientHeight < scrollHeight - 5) {
+                area.classList.add('show-bottom-fade');
+            } else {
+                area.classList.remove('show-bottom-fade');
+            }
+        }
+
+
+        function showToast(message, iconName = 'check-circle', iconColor = '#4cd137') {
+            let toast = document.getElementById('toast-container');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'toast-container';
+                toast.className = 'toast-notification';
+                document.body.appendChild(toast);
+            }
+
+            // Beállítjuk a tartalmat az egyedi ikonnal és színnel
+            toast.innerHTML = `
+        <div class="toast-icon" style="color: ${iconColor}"><i data-lucide="${iconName}"></i></div>
+        <span>${message}</span>
+    `;
+
+            lucide.createIcons();
+
+            // Reseteljük az animációt, ha már látszik
+            toast.classList.remove('show');
+            void toast.offsetWidth; // Force reflow
+            toast.classList.add('show');
+
+            // Meglévő időzítő törlése (ha gyorsan nyomkodunk)
+            if (toast.timeout) clearTimeout(toast.timeout);
+
+            toast.timeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+
+        // --- SIDEBAR DRAG & DROP LOGIKA ---
+        function setupSidebarDrop() {
+            const slidersArea = document.getElementById('sliders-area');
+
+            if (!slidersArea) return;
+
+            // Megakadályozzuk az alapértelmezett böngésző-nyitást
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                slidersArea.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, false);
+            });
+
+            // Amikor elkezded fölé húzni a fájlt
+            ['dragenter', 'dragover'].forEach(eventName => {
+                slidersArea.addEventListener(eventName, () => {
+                    slidersArea.classList.add('drag-active');
+                }, false);
+            });
+
+            // Amikor kihúzod vagy elengeded
+            ['dragleave', 'drop'].forEach(eventName => {
+                slidersArea.addEventListener(eventName, () => {
+                    slidersArea.classList.remove('drag-active');
+                }, false);
+            });
+
+            // A tényleges fájl-dobás eseménye
+            slidersArea.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files && files.length > 0) {
+                    handleFiles(files); // Meghívjuk a már létező fájlkezelődet
+                }
+            }, false);
+        }
+
+
+        /* --- BIZTONSÁGI FIGYELMEZTETÉS BEZÁRÁSKOR --- */
+        window.addEventListener('beforeunload', (e) => {
+            // Csak akkor riasztunk, ha van feltöltött kép a munkaterületen
+            if (loadedImages.length > 0) {
+                // Megakadályozzuk az azonnali bezárást
+                e.preventDefault();
+
+                // A modern böngészőkhöz szükséges beállítás (a szöveg itt már nem számít, a rendszerét fogja mutatni)
+                e.returnValue = 'Biztosan törölni szeretnéd a teljes munkaterületet?';
+                return e.returnValue;
+            }
+        });
+
+
+        function finalizeModeSelection(selectedMode) {
+            currentMode = selectedMode;
+            isSessionActive = true; // --- ÚJ: Itt engedélyezzük a mentést ---
+
+            resetPositionsForMode();
+            toggleView('editor');
+            setupCanvasInteractions();
+            updateUIControls();
+            renderCollage();
+            saveToPersistentStorage();
+            updateCanvasHUD(); // Extra trigger a belépéskor
+        }
+
+        function backToUpload() {
+            isSessionActive = false; // --- ÚJ: Kikapcsoljuk a mentési lehetőséget ---
+            // 1. Kitakarítjuk a memóriát, hogy ne maradjanak ott a képek
+            loadedImages = [];
+            originalImages = [];
+            zoomLevels = [];
+            imageOffsets = [];
+            rotations = [];
+            selectedIndices.clear();
+            activeImageIndex = -1;
+
+            // 2. Töröljük az IndexedDB mentést is, hogy frissítés után se jöjjön vissza
+            clearPersistentStorage();
+
+            // 3. Váltunk a nézetek között (JS-sel, oldalfrissítés nélkül)
+            document.getElementById('mode-selection-step').classList.add('d-none');
+            document.getElementById('upload-step').classList.remove('d-none');
+
+            // 4. Az input mezőt is ürítjük, hogy ugyanazt a képet újra fel lehessen tölteni
+            document.getElementById('imageInput').value = '';
+
+            showToast("Képek törölve, új feltöltés indítható", "image", "#888");
+        }
+
+    </script>
+
+</body>
+
+</html>
