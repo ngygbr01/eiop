@@ -1,7 +1,7 @@
 import os
 import sys
 import json
-import time
+import time 
 from flask import Flask, render_template, jsonify, request
 from playwright.sync_api import sync_playwright
 from dotenv import load_dotenv
@@ -156,4 +156,5 @@ def get_system_status():
     return jsonify(status_response)
 
 if __name__ == '__main__':
+
     app.run(debug=True, port=5000)
