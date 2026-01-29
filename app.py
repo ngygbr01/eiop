@@ -58,10 +58,10 @@ def run_login_logic(username, password, system_key):
                     page.goto(base_url, timeout=15000)
                     
                     if page.is_visible("input[name='username']"):
-                        print(f"❌ [{system_key.upper()}] Session lejárt.")
+                        print(f"[{system_key.upper()}] Session lejárt.")
                         page.close(); context.close(); context = None
                     else:
-                        print(f"✅ [{system_key.upper()}] Session érvényes.")
+                        print(f" [{system_key.upper()}] Session érvényes.")
                         page.close(); browser.close()
                         return {"status": "success", "message": f"{system_key.upper()}: Kapcsolat aktív."}
                 except:
