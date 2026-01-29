@@ -125,6 +125,10 @@ def check_session_validity(state_file):
 def index():
     return render_template('index.html')
 
+@app.route('/raktar')
+def raktar_info():
+    return render_template('raktar.html')
+
 @app.route('/kollazs')
 def kollazs():
     return render_template('kollazs.html')
