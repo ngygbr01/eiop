@@ -5,6 +5,7 @@ import time
 from flask import Flask, render_template, jsonify, request
 from playwright.sync_api import sync_playwright
 from dotenv import load_dotenv
+from inventory_scraper import fetch_inventory
 
 load_dotenv()
 
@@ -128,6 +129,19 @@ def index():
 @app.route('/raktar')
 def raktar_info():
     return render_template('raktar.html')
+
+@app.route('/api/get_inventory', methods=['GET'])
+def get_inventory():
+    # Az SZVG state fájl elérési útja (a konfigból vagy fixen)
+    # A te kódodban: SYSTEMS['szvg']['state_file']
+    state_file = SYSTEMS['szvg']['state_file']
+    
+    result = fetch_inventory(state_file)
+    
+    if result['status'] == 'success':
+        return jsonify(result), 200
+    else:
+        return jsonify(result), 500
 
 @app.route('/kollazs')
 def kollazs():

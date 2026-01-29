@@ -277,21 +277,41 @@
 
         // --- RAKTÁR MODAL (ÚJ) ---
         function openWarehouseModal() {
-            // Visszaállítjuk az alapállapotot, ha korábban már megnyitottuk
             document.getElementById('warehouse-content-initial').style.display = 'block';
             document.getElementById('warehouse-content-loading').style.display = 'none';
             openModal('warehouseModal');
         }
 
-        function startWarehouseLoad() {
+        async function startWarehouseLoad() {
             // 1. UI váltás töltésre
             document.getElementById('warehouse-content-initial').style.display = 'none';
             document.getElementById('warehouse-content-loading').style.display = 'flex';
 
-            // 2. 3 másodperc várakozás, majd átirányítás
-            setTimeout(() => {
-                window.location.href = '/raktar';
-            }, 3000);
+            try {
+                // 2. Valódi adatlekérés indítása
+                const response = await fetch('/api/get_inventory');
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    // 3. SIKER: Elmentjük az adatokat a böngésző memóriájába
+                    // Így a következő oldalon azonnal elérhető lesz
+                    sessionStorage.setItem('inventoryData', JSON.stringify(result.data));
+                    
+                    // Kis késleltetés a UX miatt (hogy látszódjon a "kész" állapot, ha túl gyors lenne)
+                    // De ha lassú a net, akkor addig pörög, amíg a fetch tart.
+                    
+                    window.location.href = '/raktar';
+                } else {
+                    // HIBA KEZELÉS
+                    alert("Hiba történt az adatok letöltésekor: " + result.message);
+                    closeModal('warehouseModal'); // Vissza az alapállapotba
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert("Hálózati hiba történt!");
+                closeModal('warehouseModal');
+            }
         }
 
         // --- LOGIC: Webshop Connection ---
@@ -363,6 +383,19 @@
             lucide.createIcons();
             t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        function openModal(id) {
+            const overlay = document.getElementById(id);
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.classList.add('active'), 10);
+            lucide.createIcons();
+        }
+
+        function closeModal(id) {
+            const overlay = document.getElementById(id);
+            overlay.classList.remove('active');
+            setTimeout(() => { overlay.style.display = 'none'; }, 300);
         }
     </script>
 </body>
