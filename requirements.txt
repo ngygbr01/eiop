@@ -1,6 +1,0 @@
-flask
-playwright
-pandas
-openpyxl
-python-dotenv
-gunicorn

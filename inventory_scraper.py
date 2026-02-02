@@ -17,7 +17,7 @@ def download_inventory_stream(state_file):
 
     # --- 1. LÉPÉS: OLDAL MEGNYITÁSA ---
     yield f"data: {json.dumps({'type': 'step', 'step': 1})}\n\n"
-    
+     
     try:
         with sync_playwright() as p:
             # LÁTHATÓ BÖNGÉSZŐ (headless=False), hogy lásd mi történik
