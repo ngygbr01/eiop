@@ -3,6 +3,7 @@ import time
 import json
 import pandas as pd
 from playwright.sync_api import sync_playwright
+from config import LOGIN_DATA_DIR # Importáljuk a mentési helyet
 
 def excel_szinkronizacio_stream(state_file):
     """
@@ -14,7 +15,6 @@ def excel_szinkronizacio_stream(state_file):
         yield f"data: {json.dumps({'type': 'error', 'message': 'Nincs bejelentkezve!'})}\n\n"
         return
 
-    # 1. LÉPÉS
     yield f"data: {json.dumps({'type': 'step', 'step': 1})}\n\n"
     
     try:
@@ -63,31 +63,24 @@ def excel_szinkronizacio_stream(state_file):
             yield f"data: {json.dumps({'type': 'step', 'step': 3})}\n\n"
             
             try:
+                # ... (Pandas beolvasás és tisztítás - EZ IS MARAD) ...
                 df = None
-                try:
-                    df = pd.read_excel(temp_file)
-                except:
-                    df = pd.read_csv(temp_file)
+                try: df = pd.read_excel(temp_file)
+                except: df = pd.read_csv(temp_file)
 
                 df.columns = [str(c).strip() for c in df.columns]
                 products = []
                 
                 for _, row in df.iterrows():
+                    # ... (Adat kinyerés loop - EZ IS MARAD) ...
+                    # (Másold be a korábbi logikát a products.append-ig)
                     try:
                         name = str(row.get('Terméknév', '')).strip()
                         if not name or name.lower() == 'nan': continue
                         sku = str(row.get('Cikkszám', '')).strip()
-                        
-                        # Adattisztítás
-                        stock = row.get('Szabad készlet', 0)
-                        try: stock = int(float(str(stock).replace(',', '.')))
-                        except: stock = 0
-                            
-                        price = row.get('Nettó ár', 0)
-                        try: 
-                            price = int(float(str(price).replace(' ', '').replace(',', '.')))
-                        except: price = 0
-                            
+                        stock = int(float(str(row.get('Szabad készlet', 0)).replace(',', '.')))
+                        price_raw = str(row.get('Nettó ár', 0)).replace(' ', '').replace(',', '.')
+                        price = int(float(price_raw))
                         barcode = str(row.get('Vonalkód', '')).split('.')[0]
                         if barcode == 'nan': barcode = ""
 
@@ -98,9 +91,23 @@ def excel_szinkronizacio_stream(state_file):
                         })
                     except: continue
 
+                # Fájl törlés
                 try: os.remove(temp_file)
                 except: pass
 
+                # --- ÚJ RÉSZ: MENTÉS SZERVERRE (JSON CACHE) ---
+                cache_file = os.path.join(LOGIN_DATA_DIR, "inventory_cache.json")
+                cache_data = {
+                    "timestamp": time.time(), # Aktuális idő másodpercben
+                    "data": products
+                }
+                
+                with open(cache_file, "w", encoding="utf-8") as f:
+                    json.dump(cache_data, f, ensure_ascii=False)
+                
+                print(f"✅ Adatok mentve ide: {cache_file}")
+
+                # KÉSZ ÜZENET
                 response_data = {"type": "complete", "data": products}
                 yield f"data: {json.dumps(response_data)}\n\n"
 

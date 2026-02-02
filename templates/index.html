@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="hu">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,81 +8,458 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
-            --bg-app: #f9f9f9; --bg-panel: #ffffff; --text-main: #1f2937; --text-muted: #6b7280;
-            --border-subtle: #e5e7eb; --accent-color: #3b82f6; --danger: #ef4444; --success: #10b981;
+            --bg-app: #f9f9f9;
+            --bg-panel: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-subtle: #e5e7eb;
+            --accent-color: #3b82f6;
+            --danger: #ef4444;
+            --success: #10b981;
             --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
             --shadow-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
 
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background-color: var(--bg-app); color: var(--text-main); margin: 0; padding: 0; height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
 
         /* HEADER */
-        .app-header { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 64px; z-index: 10; }
-        .app-title { font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 10px; color: #111827; }
-        .version-badge { font-size: 11px; font-weight: 600; color: var(--accent-color); background: #eff6ff; padding: 4px 8px; border-radius: 12px; }
+        .app-header {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            height: 64px;
+            z-index: 10;
+        }
+
+        .app-title {
+            font-weight: 700;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #111827;
+        }
+
+        .version-badge {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--accent-color);
+            background: #eff6ff;
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
 
         /* MAIN */
-        #main-container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
-        h2 { margin-bottom: 40px; font-weight: 800; font-size: 28px; color: #111827; letter-spacing: -0.02em; }
-        .cards-wrapper { display: flex; gap: 30px; justify-content: center; flex-wrap: wrap; }
+        #main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h2 {
+            margin-bottom: 40px;
+            font-weight: 800;
+            font-size: 28px;
+            color: #111827;
+            letter-spacing: -0.02em;
+        }
+
+        .cards-wrapper {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
 
         /* KÁRTYA */
-        .system-card { background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: 20px; padding: 32px; width: 260px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 16px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden; box-shadow: var(--shadow-soft); }
-        .system-card:hover { transform: translateY(-5px); border-color: var(--accent-color); box-shadow: 0 12px 20px -5px rgba(59, 130, 246, 0.15); }
-        .card-icon { width: 64px; height: 64px; background: #eff6ff; color: var(--accent-color); border-radius: 18px; display: flex; align-items: center; justify-content: center; transition: transform 0.3s ease; }
-        .system-card:hover .card-icon { transform: scale(1.1) rotate(3deg); background: #dbeafe; }
-        .system-card h3 { margin: 0; font-size: 17px; font-weight: 700; }
-        .system-card p { font-size: 13px; color: var(--text-muted); margin: 0; line-height: 1.5; text-align: center; }
-        .status-dot { width: 10px; height: 10px; border-radius: 50%; position: absolute; top: 20px; right: 20px; background-color: #e5e7eb; transition: all 0.3s; }
-        .status-dot.online { background-color: var(--success); box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15); }
-        .status-dot.offline { background-color: var(--danger); }
+        .system-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 32px;
+            width: 260px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .system-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-color);
+            box-shadow: 0 12px 20px -5px rgba(59, 130, 246, 0.15);
+        }
+
+        .card-icon {
+            width: 64px;
+            height: 64px;
+            background: #eff6ff;
+            color: var(--accent-color);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+        }
+
+        .system-card:hover .card-icon {
+            transform: scale(1.1) rotate(3deg);
+            background: #dbeafe;
+        }
+
+        .system-card h3 {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 700;
+        }
+
+        .system-card p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin: 0;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #e5e7eb;
+            transition: all 0.3s;
+        }
+
+        .status-dot.online {
+            background-color: var(--success);
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+        }
+
+        .status-dot.offline {
+            background-color: var(--danger);
+        }
 
         /* MODAL */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(6px); z-index: 9999; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s ease; }
-        .modal-overlay.active { opacity: 1; }
-        .modal-content { background: white; padding: 0; border-radius: 24px; width: 400px; box-shadow: var(--shadow-modal); overflow: hidden; transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        .modal-overlay.active .modal-content { transform: scale(1); }
-        .modal-header { padding: 24px 24px 10px 24px; border-bottom: 0; display: flex; justify-content: space-between; align-items: center; }
-        .modal-title { font-size: 18px; font-weight: 700; color: #111827; }
-        .close-icon { cursor: pointer; color: #9ca3af; transition: color 0.2s; }
-        .close-icon:hover { color: #1f2937; }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(6px);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 0;
+            border-radius: 24px;
+            width: 400px;
+            box-shadow: var(--shadow-modal);
+            overflow: hidden;
+            transform: scale(0.95);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 24px 24px 10px 24px;
+            border-bottom: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .close-icon {
+            cursor: pointer;
+            color: #9ca3af;
+            transition: color 0.2s;
+        }
+
+        .close-icon:hover {
+            color: #1f2937;
+        }
 
         /* STEP LIST */
-        .step-list { padding: 10px 24px; display: flex; flex-direction: column; gap: 8px; }
-        .step-item { display: flex; align-items: center; gap: 16px; padding: 16px; border-radius: 12px; transition: background 0.3s ease; border: 1px solid transparent; }
-        .step-item.pending { opacity: 0.5; }
-        .step-item.active { background: #f9fafb; border-color: #f3f4f6; opacity: 1; }
-        
-        .step-icon-box { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: #f3f4f6; color: #9ca3af; transition: all 0.4s ease; flex-shrink: 0; position: relative; }
-        .step-item.loading .step-icon-box { background: #eff6ff; color: var(--accent-color); }
-        .step-item.success .step-icon-box { background: #d1fae5; color: var(--success); }
-        .step-item.error .step-icon-box { background: #fee2e2; color: var(--danger); }
+        .step-list {
+            padding: 10px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
 
-        .step-text { flex: 1; }
-        .step-title { font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 2px; }
-        .step-desc { font-size: 12px; color: #9ca3af; font-weight: 500; transition: color 0.3s; }
-        .step-item.loading .step-desc { color: var(--accent-color); }
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            border-radius: 12px;
+            transition: background 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .step-item.pending {
+            opacity: 0.5;
+        }
+
+        .step-item.active {
+            background: #f9fafb;
+            border-color: #f3f4f6;
+            opacity: 1;
+        }
+
+        .step-icon-box {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f3f4f6;
+            color: #9ca3af;
+            transition: all 0.4s ease;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .step-item.loading .step-icon-box {
+            background: #eff6ff;
+            color: var(--accent-color);
+        }
+
+        .step-item.success .step-icon-box {
+            background: #d1fae5;
+            color: var(--success);
+        }
+
+        .step-item.error .step-icon-box {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+
+        .step-text {
+            flex: 1;
+        }
+
+        .step-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 2px;
+        }
+
+        .step-desc {
+            font-size: 12px;
+            color: #9ca3af;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .step-item.loading .step-desc {
+            color: var(--accent-color);
+        }
 
         /* LOADER */
-        .circular-loader { height: 20px; width: 20px; animation: rotate 2s linear infinite; transform-origin: center center; }
-        .loader-path { fill: none; stroke: var(--accent-color); stroke-width: 4px; stroke-linecap: round; stroke-dasharray: 1, 126; stroke-dashoffset: 0; animation: dash 1.5s ease-in-out infinite; transition: stroke-dasharray 0.5s ease-in-out; }
-        @keyframes rotate { 100% { transform: rotate(360deg); } }
-        @keyframes dash { 0% { stroke-dasharray: 1, 126; stroke-dashoffset: 0; } 50% { stroke-dasharray: 90, 126; stroke-dashoffset: -20px; } 100% { stroke-dasharray: 90, 126; stroke-dashoffset: -124px; } }
+        .circular-loader {
+            height: 20px;
+            width: 20px;
+            animation: rotate 2s linear infinite;
+            transform-origin: center center;
+        }
 
-        .modal-footer { padding: 24px; background: #fff; }
-        .btn-connect { width: 100%; padding: 14px; border-radius: 14px; border: none; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-connect:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3); }
-        .btn-connect:disabled { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; box-shadow: none; }
+        .loader-path {
+            fill: none;
+            stroke: var(--accent-color);
+            stroke-width: 4px;
+            stroke-linecap: round;
+            stroke-dasharray: 1, 126;
+            stroke-dashoffset: 0;
+            animation: dash 1.5s ease-in-out infinite;
+            transition: stroke-dasharray 0.5s ease-in-out;
+        }
 
-        .toast-notification { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: #1f2937; color: #fff; padding: 12px 24px; border-radius: 12px; display: flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 500; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); z-index: 100000; transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1); }
-        .toast-notification.show { transform: translateX(-50%) translateY(0); }
+        @keyframes rotate {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes dash {
+            0% {
+                stroke-dasharray: 1, 126;
+                stroke-dashoffset: 0;
+            }
+
+            50% {
+                stroke-dasharray: 90, 126;
+                stroke-dashoffset: -20px;
+            }
+
+            100% {
+                stroke-dasharray: 90, 126;
+                stroke-dashoffset: -124px;
+            }
+        }
+
+        .modal-footer {
+            padding: 24px;
+            background: #fff;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-connect {
+            width: 100%;
+            flex: 1;
+            padding: 14px;
+            border-radius: 14px;
+            border: none;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-connect:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-connect:disabled {
+            background: #f3f4f6;
+            color: #9ca3af;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-loading {
+            opacity: 0.8;
+            pointer-events: none;
+            cursor: wait !important;
+            position: relative;
+        }
+
+        /* ÚJ: CHOICE VIEW STÍLUSOK */
+        .choice-container {
+            padding: 30px 24px;
+            text-align: center;
+        }
+
+        .last-update-info {
+            background: #f0fdf4;
+            color: #166534;
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .btn-secondary {
+            flex: 1;
+            padding: 14px;
+            background: #fff;
+            color: var(--text-main);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+        }
+
+        .toast-notification {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1f2937;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            z-index: 100000;
+            transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        .toast-notification.show {
+            transform: translateX(-50%) translateY(0);
+        }
     </style>
 </head>
+
 <body>
 
     <header class="app-header">
         <div class="app-title"><i data-lucide="layout-grid" style="color:var(--accent-color)"></i>EIOP-os</div>
-        <div class="version-badge">v2.0</div>
+        <div class="version-badge">v2.7 Pro</div>
     </header>
 
     <div id="main-container">
@@ -101,15 +479,15 @@
                 <p>Gyors szinkronizálás Excel exportálással.</p>
             </div>
 
-            <div class="system-card" onclick="window.location.href='/kollazs'"> 
+            <div class="system-card" onclick="window.location.href='/kollazs'">
                 <div class="card-icon"><i data-lucide="layers"></i></div>
-                <h3>Kollázs</h3>
+                <h3>Kollázs & Feed</h3>
                 <p>Termékképek összeállítása és háttér eltávolítása.</p>
             </div>
 
             <div class="system-card" onclick="showToast('Hamarosan...', 'sparkles', '#fbbf24')">
                 <div class="card-icon"><i data-lucide="pie-chart"></i></div>
-                <h3>Analitika</h3>
+                <h3>Analitika & AI</h3>
                 <p>Profit optimalizálás és döntéstámogatás.</p>
             </div>
         </div>
@@ -121,21 +499,27 @@
                 <div class="modal-title">Rendszer Szinkronizáció</div>
                 <div class="close-icon" onclick="closeModal('modalOverlay')"><i data-lucide="x" width="20"></i></div>
             </div>
-            
+
             <div class="step-list">
                 <div class="step-item" id="step-szvg">
                     <div class="step-icon-box" id="icon-szvg"><i data-lucide="circle" width="18"></i></div>
-                    <div class="step-text"><div class="step-title">szvgtoolsshop.hu</div><div class="step-desc" id="desc-szvg">Várakozás...</div></div>
+                    <div class="step-text">
+                        <div class="step-title">szvgtoolsshop.hu</div>
+                        <div class="step-desc" id="desc-szvg">Várakozás...</div>
+                    </div>
                 </div>
                 <div class="step-item" id="step-ptd">
                     <div class="step-icon-box" id="icon-ptd"><i data-lucide="circle" width="18"></i></div>
-                    <div class="step-text"><div class="step-title">ptdbolt.hu</div><div class="step-desc" id="desc-ptd">Várakozás...</div></div>
+                    <div class="step-text">
+                        <div class="step-title">ptdbolt.hu</div>
+                        <div class="step-desc" id="desc-ptd">Várakozás...</div>
+                    </div>
                 </div>
             </div>
 
             <div class="modal-footer">
                 <button id="btn-connect" class="btn-connect" onclick="startBatchConnection()">
-                    <i data-lucide="zap" width="16"></i> Csatlakozás Indítása
+                    <i data-lucide="zap" width="16"></i> Indítás
                 </button>
             </div>
         </div>
@@ -145,42 +529,61 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title">Raktár Szinkronizáció</div>
-                <div class="close-icon" onclick="closeModal('warehouseSyncModal')"><i data-lucide="x" width="20"></i></div>
+                <div class="close-icon" onclick="closeModal('warehouseSyncModal')"><i data-lucide="x" width="20"></i>
+                </div>
             </div>
-            
-            <div class="step-list" style="padding-top: 10px;">
-                
-                <div class="step-item pending" id="sync-step-1">
-                    <div class="step-icon-box" id="sync-icon-1"><i data-lucide="globe" width="18"></i></div>
-                    <div class="step-text">
-                        <div class="step-title">Oldal megnyitása</div>
-                        <div class="step-desc">Kapcsolódás...</div>
+
+            <div id="sync-view-choice" class="choice-container" style="display:none;">
+                <div class="last-update-info">
+                    <i data-lucide="clock" width="14"></i> <span id="last-update-text">Frissítve: ismeretlen</span>
+                </div>
+                <p style="color:#6b7280; font-size:14px; margin-bottom:30px; line-height: 1.5;">
+                    A legutóbbi lekérdezés adatai elérhetőek.<br>Mit szeretnél tenni?
+                </p>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-secondary" onclick="switchToSync()">
+                        <i data-lucide="refresh-cw" width="16"></i> Újra
+                    </button>
+                    <button id="btn-open-cached" class="btn-connect" onclick="openCachedData()">
+                        <i data-lucide="arrow-right" width="16"></i> Megnyitás
+                    </button>
+                </div>
+            </div>
+
+            <div id="sync-view-progress" style="display:none;">
+                <div class="step-list" style="padding-top: 10px;">
+                    <div class="step-item pending" id="sync-step-1">
+                        <div class="step-icon-box" id="sync-icon-1"><i data-lucide="globe" width="18"></i></div>
+                        <div class="step-text">
+                            <div class="step-title">Oldal megnyitása</div>
+                            <div class="step-desc">Kapcsolódás...</div>
+                        </div>
+                    </div>
+                    <div class="step-item pending" id="sync-step-2">
+                        <div class="step-icon-box" id="sync-icon-2"><i data-lucide="download-cloud" width="18"></i>
+                        </div>
+                        <div class="step-text">
+                            <div class="step-title">Termékek exportálása</div>
+                            <div class="step-desc">Excel letöltése...</div>
+                        </div>
+                    </div>
+                    <div class="step-item pending" id="sync-step-3">
+                        <div class="step-icon-box" id="sync-icon-3"><i data-lucide="file-spreadsheet" width="18"></i>
+                        </div>
+                        <div class="step-text">
+                            <div class="step-title">Adatok feldolgozása</div>
+                            <div class="step-desc">Táblázat generálása...</div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="step-item pending" id="sync-step-2">
-                    <div class="step-icon-box" id="sync-icon-2"><i data-lucide="download-cloud" width="18"></i></div>
-                    <div class="step-text">
-                        <div class="step-title">Termékek exportálása</div>
-                        <div class="step-desc">Excel letöltése...</div>
-                    </div>
+                <div class="modal-footer" id="sync-action-footer" style="display:none;">
+                    <button id="btn-sync-start" class="btn-connect" onclick="startInventorySync()">
+                        <i data-lucide="refresh-cw" width="16"></i> Újrapróbálás
+                    </button>
                 </div>
-
-                <div class="step-item pending" id="sync-step-3">
-                    <div class="step-icon-box" id="sync-icon-3"><i data-lucide="file-spreadsheet" width="18"></i></div>
-                    <div class="step-text">
-                        <div class="step-title">Adatok betöltése</div>
-                        <div class="step-desc">Táblázat generálása...</div>
-                    </div>
-                </div>
-
             </div>
 
-            <div class="modal-footer">
-                <button id="btn-sync-start" class="btn-connect" onclick="startInventorySync()">
-                    <i data-lucide="refresh-cw" width="16"></i> Szinkronizálás Indítása
-                </button>
-            </div>
         </div>
     </div>
 
@@ -206,7 +609,7 @@
 
         function updateMainDot() {
             const dot = document.getElementById('main-status-dot');
-            dot.className = 'status-dot'; 
+            dot.className = 'status-dot';
             if (systemStatus.szvg && systemStatus.ptd) dot.classList.add('online');
             else if (systemStatus.szvg || systemStatus.ptd) dot.classList.add('offline');
         }
@@ -222,205 +625,167 @@
             setTimeout(() => document.getElementById(id).style.display = 'none', 300);
         }
 
-        // --- RAKTÁR SZINKRON (SSE LOGIKA) ---
-        function openWarehouseSyncModal() {
-            // Reset
-            for(let i=1; i<=3; i++) {
-                const el = document.getElementById(`sync-step-${i}`);
-                const icon = document.getElementById(`sync-icon-${i}`);
-                el.className = 'step-item pending';
-                if(i===1) icon.innerHTML = '<i data-lucide="globe" width="18"></i>';
-                if(i===2) icon.innerHTML = '<i data-lucide="download-cloud" width="18"></i>';
-                if(i===3) icon.innerHTML = '<i data-lucide="file-spreadsheet" width="18"></i>';
-            }
-            const btn = document.getElementById('btn-sync-start');
-            btn.disabled = false;
-            btn.innerHTML = `<i data-lucide="refresh-cw" width="16"></i> Szinkronizálás Indítása`;
-            openModal('warehouseSyncModal');
+        // --- ÚJ: "Megnyitás" logika (Profi UX) ---
+        function openCachedData() {
+            const btn = document.getElementById('btn-open-cached');
+            
+            // Gomb állapot váltása (pörgő ikon)
+            btn.innerHTML = `<svg class="circular-loader" viewBox="0 0 50 50" style="width:16px;height:16px;margin-right:8px;border-color:white;"><circle class="loader-path" cx="25" cy="25" r="20" style="stroke:white;"></circle></svg> Betöltés...`;
+            btn.classList.add('btn-loading');
+            
+            // Azonnali átirányítás (a böngésző intézi a többit)
+            window.location.href = '/raktar_info';
         }
 
-        function setSyncStepStatus(stepNum, status) {
-            const el = document.getElementById(`sync-step-${stepNum}`);
-            const iconBox = document.getElementById(`sync-icon-${stepNum}`);
-            
-            el.classList.remove('pending', 'active', 'success', 'error', 'loading');
-            
-            if (status === 'loading') {
-                el.classList.add('active', 'loading');
-                iconBox.innerHTML = `<svg class="circular-loader" viewBox="0 0 50 50"><circle class="loader-path" cx="25" cy="25" r="20"></circle></svg>`;
-            } else if (status === 'success') {
-                el.classList.add('success');
-                iconBox.innerHTML = `<i data-lucide="check" width="20"></i>`;
-            } else if (status === 'error') {
-                el.classList.add('error');
-                iconBox.innerHTML = `<i data-lucide="alert-circle" width="20"></i>`;
-            }
+        // --- RAKTÁR MODAL (Logika) ---
+        async function openWarehouseSyncModal() {
+            openModal('warehouseSyncModal');
+            document.getElementById('sync-view-choice').style.display = 'none';
+            document.getElementById('sync-view-progress').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/check_inventory_status');
+                const result = await response.json();
+                if (result.exists) showChoiceView(result.timestamp);
+                else switchToSync();
+            } catch { switchToSync(); }
+        }
+
+        function showChoiceView(timestamp) {
+            document.getElementById('sync-view-choice').style.display = 'block';
+            document.getElementById('sync-view-progress').style.display = 'none';
+
+            // Reset gomb (ha visszalépne a felhasználó)
+            const btn = document.getElementById('btn-open-cached');
+            btn.innerHTML = `<i data-lucide="arrow-right" width="16"></i> Megnyitás`;
+            btn.classList.remove('btn-loading');
+
+            const now = Math.floor(Date.now() / 1000);
+            const diff = now - timestamp;
+            let text = diff < 60 ? "Épp most" : (diff < 3600 ? `${Math.floor(diff / 60)} perce` : `${Math.floor(diff / 3600)} órája`);
+            document.getElementById('last-update-text').innerText = `Frissítve: ${text}`;
             lucide.createIcons();
         }
 
+        function switchToSync() {
+            document.getElementById('sync-view-choice').style.display = 'none';
+            document.getElementById('sync-view-progress').style.display = 'block';
+            document.getElementById('sync-action-footer').style.display = 'none'; // Gomb elrejtése
+
+            // UI Reset
+            ['1', '2', '3'].forEach(i => {
+                document.getElementById(`sync-step-${i}`).className = 'step-item pending';
+                document.getElementById(`sync-icon-${i}`).innerHTML = i === '1' ? '<i data-lucide="globe" width="18"></i>' : (i === '2' ? '<i data-lucide="download-cloud" width="18"></i>' : '<i data-lucide="file-spreadsheet" width="18"></i>');
+            });
+            lucide.createIcons();
+
+            startInventorySync(); // AUTOMATIKUS INDÍTÁS
+        }
+
         async function startInventorySync() {
+            const footer = document.getElementById('sync-action-footer');
             const btn = document.getElementById('btn-sync-start');
+            footer.style.display = 'none'; 
             btn.disabled = true;
-            btn.innerHTML = `<i data-lucide="loader-2" class="spin" width="16"></i> Folyamatban...`;
 
-            // Megnyitjuk a streaminget
-            const eventSource = new EventSource('/api/stream_inventory');
-
-            // FONTOS: onmessage helyest az EventSource protokoll szerint
-            eventSource.onmessage = function(event) {
-                console.log("Új üzenet:", event.data); // Itt a konzolon látnod kell az érkező adatot!
-                const data = JSON.parse(event.data);
-
+            const evtSource = new EventSource('/api/stream_inventory');
+            
+            evtSource.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                
                 if (data.type === 'step') {
-                    if (data.step > 1) setSyncStepStatus(data.step - 1, 'success');
+                    if (data.step > 1) setSyncStepStatus(data.step-1, 'success');
                     setSyncStepStatus(data.step, 'loading');
                 } 
                 else if (data.type === 'complete') {
                     setSyncStepStatus(3, 'success');
-                    eventSource.close();
-                    sessionStorage.setItem('inventoryData', JSON.stringify(data.data));
-                    btn.innerHTML = `<i data-lucide="check-circle" width="16"></i> Kész!`;
-                    setTimeout(() => window.location.href = '/raktar_info', 800);
+                    evtSource.close();
+                    
+                    // ITT A VÁLTOZÁS: Nem írjuk ki, hogy "Kész", hanem azonnal jelezzük az oldalnyitást
+                    // Mivel a szinkron ablakban nincs gomb, itt nem kell gombot manipulálni, 
+                    // hanem egyből mehetünk.
+                    
+                    // Opcionális: A footerben megjeleníthetjük, hogy "Átirányítás..."
+                    footer.style.display = 'flex';
+                    btn.innerHTML = `<svg class="circular-loader" viewBox="0 0 50 50" style="width:16px;height:16px;margin-right:8px;"><circle class="loader-path" cx="25" cy="25" r="20"></circle></svg> Megnyitás...`;
+                    btn.classList.add('btn-loading');
+                    
+                    window.location.href = '/raktar_info';
                 } 
                 else if (data.type === 'error') {
-                    eventSource.close();
+                    evtSource.close();
                     showToast(data.message, "x-circle", "#ef4444");
+                    footer.style.display = 'flex';
                     btn.disabled = false;
-                    btn.innerHTML = "Újrapróbálás";
+                    btn.classList.remove('btn-loading');
+                    btn.innerHTML = `<i data-lucide="refresh-cw" width="16"></i> Újrapróbálás`;
+                    lucide.createIcons();
                 }
             };
-
-            eventSource.onerror = function(err) {
-                console.error("EventSource hiba:", err);
-                eventSource.close();
+            
+            evtSource.onerror = function() { 
+                evtSource.close(); 
+                footer.style.display = 'flex'; 
+                btn.disabled = false; 
+                btn.innerHTML = "Hálózati hiba - Újra";
             };
         }
 
+        function setSyncStepStatus(step, status) {
+            const el = document.getElementById(`sync-step-${step}`);
+            const icon = document.getElementById(`sync-icon-${step}`);
+            el.className = `step-item ${status === 'loading' ? 'active' : ''}`;
+            if (status === 'loading') icon.innerHTML = `<svg class="circular-loader" viewBox="0 0 50 50"><circle class="loader-path" cx="25" cy="25" r="20"></circle></svg>`;
+            else if (status === 'success') { el.classList.add('success'); icon.innerHTML = `<i data-lucide="check" width="20"></i>`; }
+            lucide.createIcons();
+        }
+
+        // --- LOGIN LOGIKA (Változatlan) ---
         function openConnectionModal() {
-            // 1. Megnyitjuk a modált
             openModal('modalOverlay');
-            
-            // 2. UI Reset (alaphelyzetbe állítjuk a sorokat)
             ['szvg', 'ptd'].forEach(sys => {
                 const item = document.getElementById(`step-${sys}`);
                 const icon = document.getElementById(`icon-${sys}`);
                 const desc = document.getElementById(`desc-${sys}`);
-                
-                // Ha már online, akkor zöld, ha nem, akkor várakozik (szürke)
-                if (systemStatus[sys]) {
-                    item.className = 'step-item success';
-                    icon.innerHTML = `<i data-lucide="check" width="20"></i>`;
-                    desc.innerText = "Csatlakozva";
-                } else {
-                    item.className = 'step-item pending';
-                    icon.innerHTML = `<i data-lucide="circle" width="18"></i>`;
-                    desc.innerText = "Várakozás...";
-                }
+                if (systemStatus[sys]) { item.className = 'step-item success'; icon.innerHTML = `<i data-lucide="check" width="20"></i>`; desc.innerText = "Csatlakozva"; }
+                else { item.className = 'step-item pending'; icon.innerHTML = `<i data-lucide="circle" width="18"></i>`; desc.innerText = "Várakozás..."; }
             });
-
-            // 3. Gomb állapot beállítása (NEM INDUL AUTOMATIKUSAN)
             const btn = document.getElementById('btn-connect');
-
-            if (systemStatus.szvg && systemStatus.ptd) {
-                // Ha minden kész, a gomb inaktív
-                btn.disabled = true;
-                btn.innerHTML = `<i data-lucide="check" width="16"></i> Minden rendszer aktív`;
-            } else {
-                // Ha van mit csinálni, a gomb aktív és várja a kattintást
-                btn.disabled = false;
-                btn.innerHTML = `<i data-lucide="zap" width="16"></i> Indítás`;
-            }
-            
-            lucide.createIcons();
-        }
-
-        function resetStepUI(sys, ok) {
-            const item = document.getElementById(`step-${sys}`);
-            const icon = document.getElementById(`icon-${sys}`);
-            const desc = document.getElementById(`desc-${sys}`);
-            item.className = 'step-item ' + (ok ? 'success' : 'waiting');
-            icon.innerHTML = ok ? `<i data-lucide="check" width="20"></i>` : `<i data-lucide="circle" width="18"></i>`;
-            desc.innerText = ok ? "Csatlakozva" : "Várakozás...";
+            if (systemStatus.szvg && systemStatus.ptd) { btn.disabled = true; btn.innerHTML = `<i data-lucide="check" width="16"></i> Minden rendszer aktív`; }
+            else { btn.disabled = false; btn.innerHTML = `<i data-lucide="zap" width="16"></i> Indítás`; }
             lucide.createIcons();
         }
 
         async function startBatchConnection() {
             const btn = document.getElementById('btn-connect');
-            btn.disabled = true; 
-            btn.innerHTML = `<i data-lucide="loader-2" class="spin" width="16"></i> Folyamatban...`;
-            
-            // 1. SZVG Csatlakozás
-            if (!systemStatus.szvg) {
-                updateStepUI('szvg', 'loading');
-                const ok = await performLogin('szvg');
-                updateStepUI('szvg', ok ? 'success' : 'error');
-            } else {
-                 updateStepUI('szvg', 'success'); // Ha már kész volt, jelezzük
-            }
-
-            // 2. PTD Csatlakozás
-            if (!systemStatus.ptd) {
-                updateStepUI('ptd', 'loading');
-                const ok = await performLogin('ptd');
-                updateStepUI('ptd', ok ? 'success' : 'error');
-            } else {
-                 updateStepUI('ptd', 'success');
-            }
-
-            // Frissítés és Befejezés
+            btn.disabled = true; btn.innerHTML = `<i data-lucide="loader-2" class="spin" width="16"></i> Folyamatban...`;
+            const update = (sys, st) => {
+                const el = document.getElementById(`step-${sys}`);
+                const ic = document.getElementById(`icon-${sys}`);
+                el.className = `step-item ${st}`;
+                if (st === 'loading') ic.innerHTML = `<svg class="circular-loader" viewBox="0 0 50 50"><circle class="loader-path" cx="25" cy="25" r="20"></circle></svg>`;
+                else if (st === 'success') ic.innerHTML = `<i data-lucide="check" width="20"></i>`;
+                else ic.innerHTML = `<i data-lucide="alert-circle" width="20"></i>`;
+                lucide.createIcons();
+            };
+            if (!systemStatus.szvg) { update('szvg', 'loading'); const ok = await performLogin('szvg'); update('szvg', ok ? 'success' : 'error'); if (ok) systemStatus.szvg = true; } else update('szvg', 'success');
+            await new Promise(r => setTimeout(r, 500));
+            if (!systemStatus.ptd) { update('ptd', 'loading'); const ok = await performLogin('ptd'); update('ptd', ok ? 'success' : 'error'); if (ok) systemStatus.ptd = true; } else update('ptd', 'success');
             await checkAggregateStatus();
-            
-            if (systemStatus.szvg && systemStatus.ptd) {
-                btn.innerHTML = `<i data-lucide="check-circle" width="16"></i> Kész`;
-                setTimeout(() => closeModal('modalOverlay'), 1500);
-                showToast("Minden rendszer aktív", "check", "#10b981");
-            } else {
-                btn.disabled = false; 
-                btn.innerHTML = "Újrapróbálás";
-                showToast("Nem sikerült minden kapcsolódás.", "alert-triangle", "#ef4444");
-            }
+            if (systemStatus.szvg && systemStatus.ptd) { btn.innerHTML = `<i data-lucide="check-circle" width="16"></i> Kész`; setTimeout(() => closeModal('modalOverlay'), 1500); showToast("Sikeres szinkronizáció!", "check", "#10b981"); }
+            else { btn.disabled = false; btn.innerHTML = "Újrapróbálás"; }
         }
 
         async function performLogin(sys) {
-            try { 
-                const response = await fetch('/api/login', { 
-                    method: 'POST', 
-                    headers: {'Content-Type':'application/json'}, 
-                    body: JSON.stringify({system: sys}) 
-                });
-                return response.ok; 
-            } catch { return false; }
+            try { return (await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ system: sys }) })).ok; } catch { return false; }
         }
 
         function showToast(msg, icon, color) {
             const t = document.getElementById('toast-container');
             t.innerHTML = `<i data-lucide="${icon}" style="color:${color}" width="18"></i> ${msg}`;
-            lucide.createIcons();
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 3000);
-        }
-
-        function updateStepUI(sys, status) {
-            const item = document.getElementById(`step-${sys}`);
-            const icon = document.getElementById(`icon-${sys}`);
-            const desc = document.getElementById(`desc-${sys}`);
-            
-            item.className = `step-item ${status === 'loading' ? 'active' : ''}`;
-            
-            if (status === 'loading') {
-                icon.innerHTML = `<svg class="circular-loader" viewBox="0 0 50 50"><circle class="loader-path" cx="25" cy="25" r="20"></circle></svg>`;
-                desc.innerText = "Csatlakozás folyamatban...";
-            } else if (status === 'success') {
-                item.classList.add('success');
-                icon.innerHTML = `<i data-lucide="check" width="20"></i>`;
-                desc.innerText = "Sikeresen csatlakoztatva";
-            } else if (status === 'error') {
-                item.classList.add('error');
-                icon.innerHTML = `<i data-lucide="alert-circle" width="20"></i>`;
-                desc.innerText = "Hiba a kapcsolódáskor";
-            }
-            lucide.createIcons();
+            lucide.createIcons(); t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000);
         }
     </script>
 </body>
+
 </html>
