@@ -25,3 +25,5 @@ SYSTEMS = {
         "state_file": os.path.join(LOGIN_DATA_DIR, "ptd_state.json")
     }
 }
+
+HEADLESS_MODE = True

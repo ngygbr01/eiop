@@ -2,7 +2,7 @@ import os
 import json
 import time
 from playwright.sync_api import sync_playwright
-from config import SYSTEMS
+from config import SYSTEMS, HEADLESS_MODE
 
 def futtat_bejelentkezes(username, password, system_key):
     config = SYSTEMS.get(system_key)
@@ -15,7 +15,7 @@ def futtat_bejelentkezes(username, password, system_key):
     try:
         with sync_playwright() as p:
             # headless=False -> LÁTHATÓ MÓD
-            browser = p.chromium.launch(headless=False)
+            browser = p.chromium.launch(headless=HEADLESS_MODE)
             context = None
             
             # 1. Meglévő session ellenőrzése

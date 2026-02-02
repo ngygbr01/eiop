@@ -3,7 +3,8 @@ import time
 import json
 import pandas as pd
 from playwright.sync_api import sync_playwright
-from config import LOGIN_DATA_DIR # Importáljuk a mentési helyet
+from config import LOGIN_DATA_DIR 
+from config import HEADLESS_MODE
 
 def excel_szinkronizacio_stream(state_file):
     """
@@ -19,7 +20,7 @@ def excel_szinkronizacio_stream(state_file):
     
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=False) # Látható mód
+            browser = p.chromium.launch(headless=HEADLESS_MODE)
             context = browser.new_context(storage_state=state_file, accept_downloads=True)
             page = context.new_page()
             
