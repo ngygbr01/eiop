@@ -55,7 +55,12 @@ def download_inventory_stream(state_file):
                     page.locator(confirm_selector).click()
                 
                 download = download_info.value
-                temp_file = os.path.join(os.getcwd(), f"inventory_temp_{int(time.time())}.xlsx")
+                
+                # --- MÓDOSÍTÁS VERCELHEZ: Csak a /tmp mappába írhatunk! ---
+                import tempfile
+                temp_dir = tempfile.gettempdir() # Ez Vercelen a /tmp lesz
+                temp_file = os.path.join(temp_dir, f"inventory_temp_{int(time.time())}.xlsx")
+                
                 download.save_as(temp_file)
                 print(f"Fájl sikeresen letöltve: {temp_file}")
                 
