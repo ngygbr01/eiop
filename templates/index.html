@@ -452,6 +452,25 @@
         .toast-notification.show {
             transform: translateX(-50%) translateY(0);
         }
+
+        /* MOBIL OPTIMALIZÁCIÓ - INDEX */
+        @media (max-width: 768px) {
+            body { 
+                overflow-y: auto; /* Engedélyezzük a lefelé görgetést */
+                height: auto; 
+                min-height: 100vh; 
+            }
+            .app-header { padding: 0 16px; }
+            .app-title { font-size: 16px; }
+            
+            #main-container { padding: 16px; justify-content: flex-start; margin-top: 20px; }
+            
+            .cards-wrapper { flex-direction: column; width: 100%; align-items: center; }
+            .system-card { width: 100%; max-width: 320px; padding: 24px; box-sizing: border-box; }
+            
+            .modal-content { width: 90%; max-width: 400px; } /* Ne lógjon ki a képernyőről */
+            .toast-notification { width: 90%; justify-content: center; }
+        }
     </style>
 </head>
 

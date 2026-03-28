@@ -43,6 +43,41 @@
         .inline-loader-container { padding: 60px; text-align: center; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .spin { animation: spin 1s linear infinite; color: var(--accent-color); margin-bottom: 10px; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
+        /* MOBIL OPTIMALIZÁCIÓ - RAKTÁR INFO */
+        @media (max-width: 768px) {
+            html, body { overflow-y: auto; height: auto; min-height: 100vh; }
+            
+            /* Fejléc átrendezése */
+            .app-header { 
+                flex-wrap: wrap; 
+                height: auto; 
+                padding: 12px; 
+                gap: 10px; 
+                justify-content: center;
+            }
+            .back-btn { font-size: 12px; padding: 6px 10px; }
+            .page-title { font-size: 15px; }
+            .last-update-badge { font-size: 10px; padding: 4px 8px; }
+            
+            .content-container { padding: 12px; display: block; }
+            
+            /* Statisztikák egymás alá */
+            .stats-grid { grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; }
+            
+            /* Táblázat beállítások mobilon */
+            .table-scroll-area { 
+                overflow-x: auto; 
+                -webkit-overflow-scrolling: touch; /* Sima görgetés iOS-en */
+            }
+            table { white-space: nowrap; font-size: 13px; } /* Ne tördje a sorokat csúnyán */
+            th, td { padding: 10px 12px; }
+            
+            /* Sorszám (#) és Vonalkód oszlopok elrejtése a helytakarékosság miatt */
+            th:nth-child(1), td:nth-child(1),
+            th:nth-child(6), td:nth-child(6) {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
