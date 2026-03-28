@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from modulok.bejelentkezes.login_vegpontok import auth_bp
 from modulok.raktar.keszlet_vegpontok import raktar_bp
 from modulok.frontend.oldal_megjelenito import frontend_bp
+from modulok.szkenner.szkenner_vegpontok import szkenner_bp
 
 load_dotenv()
 
@@ -14,6 +15,7 @@ app = Flask(__name__)
 app.register_blueprint(auth_bp)
 app.register_blueprint(raktar_bp)
 app.register_blueprint(frontend_bp)
+app.register_blueprint(szkenner_bp)
 
 if __name__ == '__main__':
     print("🚀 EIOP Rendszer Indítása...")

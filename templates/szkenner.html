@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Számla Feldolgozó | EIOP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 min-h-screen flex items-center justify-center font-sans p-4 relative">
+    
+    <a href="/" class="absolute top-4 left-4 bg-white px-4 py-2 rounded-lg shadow font-semibold text-slate-700 hover:bg-slate-50 transition">
+        ← Vissza a vezérlőpultra
+    </a>
+
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center border border-slate-200 mt-12">
+        <h1 class="text-3xl font-extrabold text-slate-800 mb-2">Adatok digitalizálása</h1>
+        <p class="text-slate-500 mb-8 text-sm">Tölts fel egy PDF-et vagy képet az adatok kinyeréshez!</p>
+
+        <form id="uploadForm" class="space-y-6">
+            <div class="border-2 border-dashed border-slate-300 rounded-xl p-8 hover:border-blue-500 hover:bg-blue-50 transition-all bg-slate-50 relative">
+                <input type="file" id="fileInput" accept="image/png, image/jpeg, image/jpg, application/pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                <div class="flex flex-col items-center pointer-events-none">
+                    <svg class="w-12 h-12 text-blue-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    <span id="fileName" class="text-sm text-slate-600 font-semibold">Kattints ide, vagy húzd ide a dokumentumot</span>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-colors flex justify-center items-center">
+                <span>Feltöltés</span>
+            </button>
+        </form>
+
+        <div id="processingUI" class="hidden flex-col items-center justify-center py-6 space-y-4">
+            <div class="relative flex justify-center items-center">
+                <svg id="processingSpinner" class="animate-spin h-20 w-20 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                    <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span id="progressText" class="absolute font-extrabold text-slate-700 text-lg">0%</span>
+            </div>
+            <p id="processingStatus" class="text-slate-600 font-medium animate-pulse">Szöveg felismerése és elemzése...</p>
+            <p class="text-xs text-slate-400">Ez a dokumentum méretétől függően eltarthat 10-30 másodpercig is.</p>
+        </div>
+
+        <div id="message" class="mt-4 text-sm font-semibold hidden rounded-lg p-4 border"></div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const fileNameDisplay = document.getElementById('fileName');
+        const form = document.getElementById('uploadForm');
+        const processingUI = document.getElementById('processingUI');
+        const progressText = document.getElementById('progressText');
+        const processingStatus = document.getElementById('processingStatus'); // Új változó
+        const processingSpinner = document.getElementById('processingSpinner'); // Új változó
+        const message = document.getElementById('message');
+        
+        let progressInterval;
+
+        // Fájl kiválasztásakor név frissítése
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                fileNameDisplay.textContent = "Kiválasztva: " + e.target.files[0].name;
+                fileNameDisplay.classList.add("text-blue-600");
+            }
+        });
+
+        // Form beküldése
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (fileInput.files.length === 0) {
+                showMessage('Kérlek, válassz ki egy fájlt először!', 'bg-red-100 text-red-700 border-red-200');
+                return;
+            }
+
+            // 1. UI átkapcsolása töltés módba
+            form.classList.add('hidden');
+            processingUI.classList.remove('hidden');
+            processingUI.classList.add('flex');
+            message.classList.add('hidden');
+            
+            // 2. Szimulált százalékszámláló indítása
+            let progress = 0;
+            progressText.innerText = '0%';
+            progressText.classList.remove('text-green-600'); // Visszaállítjuk a színt
+            
+            progressInterval = setInterval(() => {
+                let increment = Math.random() * 5;
+                if (progress > 60) increment = Math.random() * 2;
+                if (progress > 85) increment = Math.random() * 0.5;
+                
+                progress += increment;
+                if (progress > 97) progress = 97;
+                
+                progressText.innerText = Math.floor(progress) + '%';
+            }, 600);
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/api/upload-invoice', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Ismeretlen szerverhiba történt.');
+                }
+
+                const blob = await response.blob();
+                if (blob.type !== "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+                    throw new Error("A letöltött fájl formátuma érvénytelen. Ellenőrizd a szervert!");
+                }
+
+                // Siker esetén leállítjuk az időzítőt
+                clearInterval(progressInterval);
+                
+                // JAVÍTÁS: Karika megállítása és szöveg frissítése
+                progressText.innerText = '100%';
+                progressText.classList.add('text-green-600'); 
+                processingSpinner.classList.remove('animate-spin'); // Karika megáll
+                processingStatus.innerText = 'Feldolgozva! Kész. ✅'; // Szöveg frissül
+                processingStatus.classList.remove('animate-pulse'); // Lüktetés megszűnik
+
+                setTimeout(() => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'szamla_' + new Date().getTime() + '.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+
+                    setTimeout(() => {
+                        processingUI.classList.add('hidden');
+                        processingUI.classList.remove('flex');
+                        form.classList.remove('hidden');
+                        progressText.classList.remove('text-green-600');
+                        processingSpinner.classList.add('animate-spin'); // Újraindítjuk a köv. alkalomra
+                        processingStatus.innerText = 'Szöveg felismerése és elemzése...'; // Alaphelyzet
+                        processingStatus.classList.add('animate-pulse'); // Alaphelyzet
+                        showMessage('Sikeres letöltés! 🎉 Készen áll a következőre.', 'bg-green-100 text-green-700 border-green-200');
+                        fileInput.value = ''; 
+                        fileNameDisplay.textContent = "Kattints ide, vagy húzd ide a dokumentumot";
+                        fileNameDisplay.classList.remove("text-blue-600");
+                    }, 1500);
+
+                }, 500); 
+
+            } catch (error) {
+                clearInterval(progressInterval);
+                processingUI.classList.add('hidden');
+                processingUI.classList.remove('flex');
+                form.classList.remove('hidden');
+                showMessage('Hiba: ' + error.message, 'bg-red-100 text-red-800 border-red-300');
+            }
+        });
+
+        function showMessage(msg, styleClasses) {
+            message.textContent = msg;
+            message.className = `mt-4 text-sm font-semibold block rounded-lg p-4 border ${styleClasses}`;
+        }
+    </script>
+</body>
+</html>
